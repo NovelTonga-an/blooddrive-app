@@ -1,0 +1,325 @@
+/* Color Variables aligned with RHU Cervantes BloodDrive Theme */
+:root {
+  --bd-crimson: #c62828;
+  --bd-crimson-gradient: linear-gradient(180deg, #c62828 0%, #d32f2f 50%, #e53935 100%);
+  --bd-ink: #0f172a;
+  --bd-paper: #f8f9fa;
+  --bd-card-bg: #ffffff;
+  --bd-rose-tint: #fef2f2;
+  --bd-rose-line: #fecdd3;
+  --bd-muted: #64748b;
+  --bd-line: #e2e8f0;
+  --bd-good-tint: #e8f5ee;
+  --bd-good: #1e7a4c;
+}
+
+.profile-content {
+  --background: var(--bd-paper);
+}
+
+.profile-wrapper {
+  padding: 16px 18px 90px 18px;
+}
+
+/* Header */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0 14px 0;
+}
+
+.topbar h1 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--bd-ink);
+  margin: 0;
+  letter-spacing: -0.4px;
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--bd-card-bg);
+  border: 1px solid var(--bd-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: var(--bd-ink);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Identity Card */
+.identity-card {
+  background: var(--bd-crimson-gradient);
+  border-radius: 24px;
+  padding: 24px 20px;
+  text-align: center;
+  margin: 8px 0 18px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 24px -6px rgba(198, 40, 40, 0.35);
+}
+
+.identity-card::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  top: -50px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.25), transparent 70%);
+}
+
+.avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--bd-crimson);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin: 0 auto 12px;
+  border: 4px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1;
+}
+
+.id-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 2px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.id-sub {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0 0 14px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.id-badges {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.badge {
+  font-size: 0.725rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.badge.verified {
+  background: rgba(63, 214, 132, 0.2);
+  color: #8fe3b0;
+}
+
+/* Eligibility Strip */
+.elig-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bd-good-tint);
+  border: 1px solid #cdebda;
+  border-radius: 16px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+
+.elig-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bd-good);
+  flex-shrink: 0;
+}
+
+.elig-text .t {
+  font-size: 0.825rem;
+  font-weight: 800;
+  color: var(--bd-good);
+}
+
+.elig-text .s {
+  font-size: 0.725rem;
+  color: var(--bd-muted);
+}
+
+/* Sections */
+.profile-section {
+  margin-bottom: 20px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+.section-title {
+  font-size: 0.775rem;
+  font-weight: 800;
+  color: var(--bd-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.edit-link {
+  font-size: 0.8rem;
+  color: var(--bd-crimson);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.field-card {
+  background: var(--bd-card-bg);
+  border: 1px solid var(--bd-line);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.field-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--bd-line);
+}
+
+.field-row:last-child {
+  border-bottom: none;
+}
+
+.field-label {
+  font-size: 0.825rem;
+  color: var(--bd-muted);
+  font-weight: 500;
+}
+
+.field-value {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--bd-ink);
+  text-align: right;
+}
+
+.field-value.muted {
+  color: var(--bd-muted);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  margin-left: 6px;
+  text-transform: uppercase;
+}
+
+.verified-tag {
+  background: var(--bd-good-tint);
+  color: var(--bd-good);
+}
+
+/* Toggles */
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bd-line);
+}
+
+.toggle-row:last-child {
+  border-bottom: none;
+}
+
+.toggle-info .t {
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: var(--bd-ink);
+}
+
+.toggle-info .s {
+  font-size: 0.725rem;
+  color: var(--bd-muted);
+  margin-top: 1px;
+}
+
+.custom-toggle {
+  --handle-background-checked: #ffffff;
+  --track-background-checked: var(--bd-crimson);
+}
+
+/* Account & Privacy Danger Zone */
+.danger-card {
+  background: var(--bd-card-bg);
+  border: 1px solid var(--bd-line);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.danger-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--bd-line);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--bd-ink);
+}
+
+.danger-row:last-child {
+  border-bottom: none;
+}
+
+.danger-row ion-icon {
+  font-size: 1.1rem;
+  color: var(--bd-muted);
+}
+
+.danger-row.delete-row {
+  color: var(--bd-crimson);
+}
+
+.danger-row.delete-row ion-icon {
+  color: var(--bd-crimson);
+}
+
+.chev {
+  margin-left: auto;
+  font-size: 0.9rem;
+  opacity: 0.5;
+}
+
+.footer-note {
+  text-align: center;
+  font-size: 0.725rem;
+  color: var(--bd-muted);
+  padding: 16px 10px 4px;
+}

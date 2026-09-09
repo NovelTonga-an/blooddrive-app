@@ -1,0 +1,492 @@
+/* Color Palette variables matching BloodDrive RHU Cervantes Theme */
+:root {
+  --bd-crimson: #c62828;
+  --bd-crimson-hover: #b71c1c;
+  --bd-crimson-gradient: linear-gradient(180deg, #c62828 0%, #d32f2f 50%, #e53935 100%);
+  --bd-ink: #0f172a;
+  --bd-paper: #f8f9fa;
+  --bd-card-bg: #ffffff;
+  --bd-rose-tint: #fef2f2;
+  --bd-rose-line: #fecdd3;
+  --bd-muted: #64748b;
+  --bd-line: #e2e8f0;
+  --bd-good-tint: #e8f5ee;
+  --bd-good: #1e7a4c;
+}
+
+.dashboard-content {
+  --background: var(--bd-paper);
+}
+
+.dashboard-wrapper {
+  padding: 16px 18px 90px 18px;
+}
+
+/* Header & Bell */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0 18px 0;
+}
+
+.greet-eyebrow {
+  font-size: 0.725rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bd-muted);
+  font-weight: 700;
+  margin: 0 0 2px 0;
+}
+
+.greet-name {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--bd-ink);
+  margin: 0;
+  letter-spacing: -0.4px;
+}
+
+.bell-container {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: var(--bd-card-bg);
+  border: 1px solid var(--bd-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.bell-icon {
+  font-size: 1.25rem;
+  color: var(--bd-ink);
+}
+
+.notification-dot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bd-crimson);
+  border: 1.5px solid #ffffff;
+}
+
+/* Signature Hero Card */
+.hero-card {
+  background: var(--bd-crimson-gradient);
+  border-radius: 24px;
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 24px -6px rgba(198, 40, 40, 0.35);
+}
+
+.hero-card::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  top: -40px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.25), transparent 70%);
+}
+
+.ring-wrap {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  flex-shrink: 0;
+}
+
+.ring-wrap svg {
+  transform: rotate(-90deg);
+}
+
+.ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-label .type {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.ring-label .sub {
+  font-size: 0.525rem;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hero-text {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-status {
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: #8fe3b0;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3fd684;
+  display: inline-block;
+}
+
+.hero-title {
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 3px 0;
+  line-height: 1.25;
+}
+
+.hero-sub {
+  font-size: 0.775rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+}
+
+/* Sections & Headers */
+.dashboard-section {
+  margin-bottom: 22px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 0.975rem;
+  font-weight: 800;
+  color: var(--bd-ink);
+  margin: 0;
+}
+
+.section-link {
+  font-size: 0.8rem;
+  color: var(--bd-crimson);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* Emergency Request Cards */
+.req-card {
+  background: var(--bd-card-bg);
+  border: 1px solid var(--bd-line);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.req-card.critical {
+  border-left: 4px solid var(--bd-crimson);
+}
+
+.req-card.moderate {
+  border-left: 4px solid #e0a63e;
+}
+
+.req-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.req-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.tag-critical {
+  background: var(--bd-rose-tint);
+  color: var(--bd-crimson);
+}
+
+.tag-moderate {
+  background: #fbf0dd;
+  color: #8a5b12;
+}
+
+.req-title {
+  font-size: 0.925rem;
+  font-weight: 700;
+  color: var(--bd-ink);
+  margin: 0 0 2px 0;
+}
+
+.req-meta {
+  font-size: 0.775rem;
+  color: var(--bd-muted);
+  margin: 0;
+}
+
+.req-type {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--bd-crimson);
+  border: 1.5px solid var(--bd-crimson);
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.req-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.req-status-note {
+  margin: 12px 0 0 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.req-status-note.accepted {
+  color: var(--bd-good);
+}
+
+.req-status-note.declined {
+  color: var(--bd-muted);
+}
+
+.btn {
+  flex: 1;
+  text-align: center;
+  font-size: 0.825rem;
+  font-weight: 700;
+  padding: 10px 0;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-primary {
+  background: var(--bd-crimson);
+  color: #ffffff;
+}
+
+.btn-ghost {
+  background: var(--bd-rose-tint);
+  color: var(--bd-crimson);
+}
+
+/* Scrollable Donation Drives */
+.drive-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: none;
+}
+
+.drive-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.drive-card {
+  min-width: 180px;
+  background: var(--bd-card-bg);
+  border: 1px solid var(--bd-line);
+  border-radius: 18px;
+  padding: 14px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.drive-date {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.date-box {
+  background: var(--bd-rose-tint);
+  color: var(--bd-crimson);
+  border-radius: 8px;
+  padding: 4px 8px;
+  text-align: center;
+  line-height: 1.1;
+  display: flex;
+  flex-direction: column;
+}
+
+.date-box .d {
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.date-box .m {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.drive-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--bd-ink);
+  margin: 0 0 4px 0;
+}
+
+.drive-loc {
+  font-size: 0.75rem;
+  color: var(--bd-muted);
+  margin: 0 0 12px 0;
+}
+
+.drive-btn {
+  width: 100%;
+  font-size: 0.775rem;
+  font-weight: 700;
+  padding: 7px 0;
+  border-radius: 8px;
+  border: 1px solid var(--bd-crimson);
+  background: transparent;
+  color: var(--bd-crimson);
+  cursor: pointer;
+}
+
+.drive-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.drive-decline-link {
+  width: 100%;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--bd-muted);
+  background: none;
+  border: none;
+  padding: 6px 0 0 0;
+  cursor: pointer;
+}
+
+.drive-status-note {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.drive-status-note.good {
+  color: var(--bd-good);
+}
+
+.drive-status-note.muted {
+  color: var(--bd-muted);
+}
+
+/* Stats Row */
+.stats-row {
+  margin: 0 -4px;
+}
+
+.stat-card {
+  background: var(--bd-card-bg);
+  border: 1px solid var(--bd-line);
+  border-radius: 16px;
+  padding: 14px 10px;
+  text-align: left;
+  margin: 0 4px;
+}
+
+.stat-num {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--bd-ink);
+}
+
+.stat-label {
+  font-size: 0.675rem;
+  color: var(--bd-muted);
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+/* Donation History List */
+.hist-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bd-line);
+}
+
+.hist-row:last-child {
+  border-bottom: none;
+}
+
+.hist-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--bd-good-tint);
+  color: var(--bd-good);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.hist-info .t {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--bd-ink);
+}
+
+.hist-info .s {
+  font-size: 0.75rem;
+  color: var(--bd-muted);
+}

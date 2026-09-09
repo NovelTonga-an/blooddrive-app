@@ -1,0 +1,16 @@
+.custom-tab-bar {
+  --background: #ffffff;
+  --border-color: #e0e0e0;
+  height: 60px;
+}
+
+ion-tab-button {
+  --color: #9e9e9e;
+  --color-selected: #c62828;
+  font-size: 0.75rem;
+}
+
+ion-tab-button ion-icon {
+  font-size: 1.35rem;
+  margin-bottom: 2px;
+}

@@ -1,0 +1,158 @@
+/* Page Background & Scroll Container */
+.register-content {
+  --background: #f8fafc;
+}
+
+.register-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+/* Card Container */
+.register-card {
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px -15px rgba(229, 57, 53, 0.08), 0 10px 25px -10px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  margin: 0;
+  overflow: hidden;
+}
+
+.card-body {
+  padding: 36px 28px !important;
+}
+
+/* Header & Branding */
+.text-center {
+  text-align: center;
+}
+
+.brand-badge {
+  width: 52px;
+  height: 52px;
+  background-color: #fef2f2;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px auto;
+}
+
+.drop-icon {
+  font-size: 1.6rem;
+}
+
+.brand-title {
+  color: #0f172a;
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  margin: 0 0 4px 0;
+}
+
+.brand-subtitle {
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0 0 28px 0;
+}
+
+/* Form Layout */
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-label {
+  color: #334155;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+}
+
+/* Custom Grid Adjustments for Multi-column Inputs */
+.grid-row-reset {
+  margin: 0 -6px;
+}
+
+.col-pad-left,
+.col-pad-right {
+  padding: 0 6px !important;
+}
+
+/* Rounded Input & Select Styling */
+.rounded-input {
+  --border-color: #cbd5e1;
+  --border-radius: 14px;
+  --placeholder-color: #94a3b8;
+  --highlight-color-focused: #e53935;
+  --background: #f8fafc;
+  --color: #0f172a;
+  min-height: 50px;
+  font-size: 0.925rem;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+}
+
+.rounded-input:hover {
+  --background: #ffffff;
+  --border-color: #94a3b8;
+}
+
+.rounded-select {
+  width: 100%;
+}
+
+.input-icon {
+  color: #64748b;
+  font-size: 1.2rem;
+  margin-inline-start: 12px;
+  margin-inline-end: 8px;
+}
+
+.password-toggle-btn {
+  --color: #64748b;
+  margin: 0;
+  height: 40px;
+}
+
+/* Register Action Button */
+.btn-register {
+  --background: #e53935;
+  --background-hover: #dc2626;
+  --background-activated: #b91c1c;
+  --border-radius: 14px;
+  --color: #ffffff;
+  --box-shadow: 0 10px 20px -5px rgba(229, 57, 53, 0.35);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  height: 52px;
+  margin-top: 10px;
+}
+
+/* Footer Link */
+.login-footer {
+  margin-top: 24px;
+  font-size: 0.875rem;
+}
+
+.login-link {
+  color: #e53935;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.login-link:hover {
+  color: #b91c1c;
+  text-decoration: underline;
+}

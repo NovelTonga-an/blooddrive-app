@@ -1,0 +1,265 @@
+.login-container {
+  --background: #f2f2f2;
+}
+
+.full-height {
+  min-height: 100vh;
+}
+
+.login-card {
+  background-color: #ffffff;
+  border-radius: 20px;/* Page Background & Centering */
+.login-content {
+  --background: #f8fafc;
+}
+
+.login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+/* Card Container */
+.login-card {
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px -15px rgba(229, 57, 53, 0.08), 0 10px 25px -10px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  margin: 0;
+  overflow: hidden;
+}
+
+.card-body {
+  padding: 36px 28px !important;
+}
+
+/* Header & Branding */
+.text-center {
+  text-align: center;
+}
+
+.brand-badge {
+  width: 52px;
+  height: 52px;
+  background-color: #fef2f2;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px auto;
+}
+
+.drop-icon {
+  font-size: 1.6rem;
+}
+
+.brand-title {
+  color: #0f172a;
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  margin: 0 0 4px 0;
+}
+
+.brand-subtitle {
+  color: #64748b;
+  font-size: 0.925rem;
+  font-weight: 500;
+  margin: 0 0 32px 0;
+}
+
+/* Inputs & Form Layout */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.input-label {
+  color: #334155;
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 8px;
+}
+
+.label-row .input-label {
+  margin-bottom: 0;
+}
+
+/* Rounded Input Styling */
+.rounded-input {
+  --border-color: #cbd5e1;
+  --border-radius: 14px; /* Soft round corners */
+  --placeholder-color: #94a3b8;
+  --highlight-color-focused: #e53935;
+  --background: #f8fafc;
+  --color: #0f172a;
+  min-height: 52px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+}
+
+.rounded-input:hover {
+  --background: #ffffff;
+  --border-color: #94a3b8;
+}
+
+.input-icon {
+  color: #64748b;
+  font-size: 1.25rem;
+  margin-inline-start: 12px;
+  margin-inline-end: 8px;
+}
+
+.password-toggle-btn {
+  --color: #64748b;
+  margin: 0;
+  height: 40px;
+}
+
+/* Navigation Links */
+.forgot-password-link {
+  color: #e53935;
+  text-decoration: none;
+  font-size: 0.825rem;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.forgot-password-link:hover {
+  color: #b91c1c;
+}
+
+/* Login Button */
+.btn-login {
+  --background: #e53935;
+  --background-hover: #dc2626;
+  --background-activated: #b91c1c;
+  --border-radius: 14px;
+  --color: #ffffff;
+  --box-shadow: 0 10px 20px -5px rgba(229, 57, 53, 0.35);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  height: 52px;
+  margin-top: 8px;
+}
+
+/* Footer Link */
+.signup-footer {
+  margin-top: 28px;
+  font-size: 0.875rem;
+}
+
+.signup-link {
+  color: #e53935;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.signup-link:hover {
+  color: #b91c1c;
+  text-decoration: underline;
+}
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  margin: 0;
+  padding: 16px 8px;
+}
+
+.brand-title {
+  color: #e53935;
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0 0 2px 0;
+}
+
+.brand-subtitle {
+  color: #616161;
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: 0 0 28px 0;
+}
+
+.input-group {
+  margin-bottom: 16px;
+}
+
+.input-label {
+  display: block;
+  color: #1a1a1a;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+  text-align: left;
+}
+
+.custom-input {
+  --border-color: #e0e0e0;
+  --border-radius: 8px;
+  --placeholder-color: #9e9e9e;
+  --highlight-color-focused: #e53935;
+  min-height: 48px;
+}
+
+.password-toggle-btn {
+  --color: #616161;
+  margin: 0;
+}
+
+.forgot-password-link {
+  color: #e53935;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
+.forgot-password-link:hover {
+  color: #c62828;
+  text-decoration: underline;
+}
+
+.btn-login {
+  --background: #e53935;
+  --background-hover: #d32f2f;
+  --background-activated: #c62828;
+  --border-radius: 8px;
+  --color: #ffffff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  height: 48px;
+}
+
+.signup-text {
+  font-size: 0.85rem;
+  margin-top: 24px;
+}
+
+.signup-link {
+  color: #e53935;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.signup-link:hover {
+  color: #c62828;
+  text-decoration: underline;
+}

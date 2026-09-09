@@ -1,0 +1,402 @@
+:root {
+  --bd-crimson: #c62828;
+  --bd-crimson-hover: #b71c1c;
+  --bd-crimson-gradient: linear-gradient(180deg, #c62828 0%, #d32f2f 50%, #e53935 100%);
+  --bd-ink: #0f172a;
+  --bd-paper: #f8f9fa;
+  --bd-card-bg: #ffffff;
+  --bd-rose-tint: #fef2f2;
+  --bd-rose-line: #fecdd3;
+  --bd-muted: #64748b;
+  --bd-line: #e2e8f0;
+  --bd-good-tint: #e8f5ee;
+  --bd-good: #1e7a4c;
+}
+
+.drives-content {
+  --background: var(--bd-paper);
+}
+
+.drives-wrapper {
+  padding: 16px 18px 90px 18px;
+}
+
+/* Header & Navigation */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0 14px 0;
+}
+
+.topbar h1 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--bd-ink);
+  margin: 0;
+  letter-spacing: -0.4px;
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--bd-card-bg);
+  border: 1px solid var(--bd-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: var(--bd-ink);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Segmented Control */
+.custom-segmented {
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 3px;
+  margin-bottom: 16px;
+}
+
+/* Chips */
+.chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 14px;
+  scrollbar-width: none;
+}
+
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex-shrink: 0;
+  font-size: 0.775rem;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--bd-line);
+  background: var(--bd-card-bg);
+  color: var(--bd-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chip.active {
+  background: var(--bd-ink);
+  color: #ffffff;
+  border-color: var(--bd-ink);
+}
+
+/* Drive Cards */
+.drive-card {
+  background: var(--bd-card-bg);
+  border: 1px solid var(--bd-line);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+}
+
+.drive-card-header {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.date-badge {
+  width: 52px;
+  height: 52px;
+  background: var(--bd-rose-tint);
+  border: 1px solid var(--bd-rose-line);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.date-day {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--bd-crimson);
+  line-height: 1;
+}
+
+.date-month {
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: var(--bd-crimson);
+  letter-spacing: 0.05em;
+}
+
+.drive-header-info {
+  flex: 1;
+}
+
+.drive-status-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.drive-status-tag.open {
+  background: var(--bd-good-tint);
+  color: var(--bd-good);
+}
+
+.drive-status-tag.confirmed {
+  background: var(--bd-good-tint);
+  color: var(--bd-good);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.drive-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--bd-ink);
+  margin: 0;
+}
+
+.drive-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.775rem;
+  color: var(--bd-muted);
+}
+
+.detail-item ion-icon {
+  font-size: 0.95rem;
+  color: var(--bd-muted);
+}
+
+.drive-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--bd-line);
+  padding-top: 12px;
+}
+
+.slots-left {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--bd-crimson);
+}
+
+.btn {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--bd-crimson);
+  color: #ffffff;
+}
+
+/* Registration Pass Card */
+.registration-pass {
+  background: #f8fafc;
+  border: 1px dashed var(--bd-line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pass-label {
+  font-size: 0.75rem;
+  color: var(--bd-muted);
+}
+
+.pass-code {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--bd-ink);
+  letter-spacing: 0.05em;
+}
+
+/* FAB Styling */
+.fab-container {
+  margin-bottom: 65px;
+  margin-inline-end: 16px;
+}
+
+.custom-fab-icon-only {
+  --background: var(--bd-crimson);
+  --background-hover: #b71c1c;
+  --color: #ffffff;
+  --border-radius: 50%;
+  --box-shadow: 0 8px 20px -2px rgba(198, 40, 40, 0.45);
+  width: 56px;
+  height: 56px;
+}
+
+/* Drive Detail Views */
+.drive-hero {
+  background: var(--bd-crimson-gradient);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 18px;
+  color: #ffffff;
+}
+
+.hero-tag {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hero-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin: 4px 0 2px 0;
+}
+
+.hero-sub {
+  font-size: 0.775rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.field-card {
+  background: var(--bd-card-bg);
+  border: 1px solid var(--bd-line);
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.field-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bd-line);
+}
+
+.field-row:last-child {
+  border-bottom: none;
+}
+
+.field-label {
+  font-size: 0.8rem;
+  color: var(--bd-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.field-value {
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: var(--bd-ink);
+}
+
+.guidelines-card {
+  background: var(--bd-card-bg);
+  border: 1px solid var(--bd-line);
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.guide-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.775rem;
+  color: var(--bd-ink);
+}
+
+.guide-icon {
+  color: var(--bd-good);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.submit-btn {
+  --background: var(--bd-crimson);
+  --background-hover: #b71c1c;
+  --border-radius: 12px;
+  --color: #ffffff;
+  --box-shadow: 0 8px 18px -4px rgba(198, 40, 40, 0.35);
+  font-weight: 800;
+  font-size: 0.925rem;
+  height: 50px;
+  margin-bottom: 16px;
+}
+
+.registered-confirmation {
+  background: var(--bd-good-tint);
+  border: 1px solid #cdebda;
+  border-radius: 18px;
+  padding: 18px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.conf-icon-box ion-icon {
+  font-size: 2.2rem;
+  color: var(--bd-good);
+}
+
+.registered-confirmation h4 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--bd-good);
+  margin: 6px 0 2px 0;
+}
+
+.registered-confirmation p {
+  font-size: 0.775rem;
+  color: var(--bd-muted);
+  margin: 0;
+}
+
+.info-note {
+  background: #f1f5f9;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 0.75rem;
+  color: var(--bd-muted);
+  line-height: 1.5;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.info-note ion-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
