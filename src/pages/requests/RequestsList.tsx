@@ -60,7 +60,7 @@ const RequestsList: React.FC = () => {
         myEmergencyRequestApi.list(token),
       ]);
       setActiveRequests(activeRes.requests);
-      setMyRequests(mineRes.requests);
+      setMyRequests(mineRes);
     } catch (err) {
       setToastMessage(err instanceof ApiError ? err.message : 'Unable to load requests.');
     } finally {
