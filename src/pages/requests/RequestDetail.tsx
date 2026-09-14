@@ -7,11 +7,24 @@ import {
   IonToast,
   IonButton
 } from '@ionic/react';
-import { arrowBackOutline, ellipsisHorizontal } from 'ionicons/icons';
+import { arrowBackOutline, ellipsisHorizontal, locationOutline } from 'ionicons/icons';
 import { useHistory, useParams } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
 import { useAuth } from '../../context/AuthContext';
 import { ApiError, myEmergencyRequestApi, MyEmergencyRequestDetail, NotifiedDonor } from '../../services/api';
 import './Requests.css';
+
+// Fix Leaflet default marker icon asset paths
+import markerIconPng from 'leaflet/dist/images/marker-icon.png';
+import markerShadowPng from 'leaflet/dist/images/marker-shadow.png';
+
+const customMarkerIcon = L.icon({
+  iconUrl: markerIconPng,
+  shadowUrl: markerShadowPng,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41]
+});
 
 function responseStatusLabel(status: NotifiedDonor['response_status']): { label: string; className: string } {
   switch (status) {
@@ -103,6 +116,15 @@ const RequestDetail: React.FC = () => {
   const willingCount = donors.filter((d) => d.response_status === 'accepted' || d.response_status === 'arrived').length;
   const declinedCount = donors.filter((d) => d.response_status === 'declined').length;
 
+  // Safe Coordinate Check
+  const lat = Number(request.latitude);
+  const lng = Number(request.longitude);
+  const hasCoords = 
+    request.latitude !== null && 
+    request.longitude !== null && 
+    !isNaN(lat) && 
+    !isNaN(lng);
+
   return (
     <IonPage>
       <IonContent fullscreen className="requests-content">
@@ -113,7 +135,7 @@ const RequestDetail: React.FC = () => {
             <div className="icon-btn" onClick={() => history.goBack()}>
               <IonIcon icon={arrowBackOutline} />
             </div>
-            <h1>My request</h1>
+            <h1>Request detail</h1>
             <div className="icon-btn">
               <IonIcon icon={ellipsisHorizontal} />
             </div>
@@ -131,8 +153,31 @@ const RequestDetail: React.FC = () => {
             <p className="detail-sub">{request.hospital_venue} · {request.units_needed} units needed</p>
           </div>
 
+          {/* Pinned Location Map (Rendered only if coordinates are valid) */}
+          {hasCoords && (
+            <div style={{ marginTop: '16px' }}>
+              <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <IonIcon icon={locationOutline} style={{ color: '#B3122B' }} /> Pinned Extraction Venue
+              </h3>
+              <div style={{ height: '200px', width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid #ccc', marginTop: '8px' }}>
+                <MapContainer center={[lat, lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; OpenStreetMap contributors'
+                  />
+                  <Marker position={[lat, lng]} icon={customMarkerIcon}>
+                    <Popup>
+                      <strong>{request.hospital_venue}</strong><br />
+                      Patient: {request.patient_name}
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              </div>
+            </div>
+          )}
+
           {/* Timeline Status */}
-          <h3 className="section-title">Status timeline</h3>
+          <h3 className="section-title" style={{ marginTop: '18px' }}>Status timeline</h3>
           <div className="timeline">
             <div className="tl-step">
               <div className="tl-marker">

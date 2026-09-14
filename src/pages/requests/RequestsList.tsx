@@ -12,10 +12,14 @@ import {
   IonRefresherContent,
   IonToast,
   IonSpinner,
+  IonModal,
+  IonButton,
   RefresherEventDetail
 } from '@ionic/react';
-import { add, searchOutline, personOutline, callOutline } from 'ionicons/icons';
+import { add, searchOutline, personOutline, callOutline, locationOutline, closeOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
 import { useAuth } from '../../context/AuthContext';
 import {
   ApiError,
@@ -25,6 +29,17 @@ import {
   MyEmergencyRequestItem
 } from '../../services/api';
 import './Requests.css';
+
+// Fix Leaflet default marker icon asset paths
+import markerIconPng from 'leaflet/dist/images/marker-icon.png';
+import markerShadowPng from 'leaflet/dist/images/marker-shadow.png';
+
+const customMarkerIcon = L.icon({
+  iconUrl: markerIconPng,
+  shadowUrl: markerShadowPng,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41]
+});
 
 function statusPillLabel(status: MyEmergencyRequestItem['status']): { label: string; className: string } {
   switch (status) {
@@ -50,6 +65,9 @@ const RequestsList: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [respondingId, setRespondingId] = useState<number | null>(null);
+
+  // Modal State for Viewing Location
+  const [selectedLocationReq, setSelectedLocationReq] = useState<EmergencyRequestItem | null>(null);
 
   const loadRequests = useCallback(async () => {
     if (!token) return;
@@ -135,64 +153,99 @@ const RequestsList: React.FC = () => {
                 <p className="status-meta" style={{ padding: '12px 4px' }}>No emergency requests right now.</p>
               )}
 
-              {activeRequests.map((req) => (
-                <div key={req.id} className="req-card moderate">
-                  <div className="req-top">
-                    <div>
-                      {/* Patient Name Header */}
-                      <h3 className="req-title" style={{ marginTop: '4px' }}>
-                        Patient: {req.patient_name}
-                      </h3>
-                      <p className="req-meta">{req.hospital_venue} · {req.barangay_name ?? 'Cervantes'}</p>
-                      <p className="req-meta">{req.units_needed} unit(s) needed</p>
-                    </div>
-                    <div className="req-type">{req.blood_type}</div>
-                  </div>
+              {activeRequests.map((req) => {
+                const lat = Number(req.latitude);
+                const lng = Number(req.longitude);
+                const hasCoords = 
+                  req.latitude !== null && 
+                  req.longitude !== null && 
+                  !isNaN(lat) && 
+                  !isNaN(lng);
 
-                  {/* Contact Details Section */}
-                  <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                    <p className="req-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '3px 0' }}>
-                      <IonIcon icon={personOutline} style={{ fontSize: '0.9rem' }} /> Contact Person: <strong>{req.contact_person}</strong>
-                    </p>
-                    <p className="req-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '3px 0' }}>
-                      <IonIcon icon={callOutline} style={{ fontSize: '0.9rem' }} /> Contact No.:{' '}
-                      <a href={`tel:${req.contact_number}`} style={{ color: 'var(--ion-color-primary, #b3122b)', fontWeight: 600, textDecoration: 'none' }}>
-                        {req.contact_number}
-                      </a>
-                    </p>
-                  </div>
-
-                  {req.my_response_status === 'not_responded' ? (
-                    <div className="req-actions">
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        disabled={respondingId === req.id}
-                        onClick={() => respondToRequest(req.id, 'declined')}
-                      >
-                        Not available
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        disabled={respondingId === req.id}
-                        onClick={() => respondToRequest(req.id, 'accepted')}
-                      >
-                        I can help
-                      </button>
+                return (
+                  <div key={req.id} className="req-card moderate">
+                    <div className="req-top">
+                      <div>
+                        <h3 className="req-title" style={{ marginTop: '4px' }}>
+                          Patient: {req.patient_name}
+                        </h3>
+                        <p className="req-meta">{req.hospital_venue} · {req.barangay_name ?? 'Cervantes'}</p>
+                        <p className="req-meta">{req.units_needed} unit(s) needed</p>
+                      </div>
+                      <div className="req-type">{req.blood_type}</div>
                     </div>
-                  ) : (
-                    <p className="status-meta" style={{ marginTop: '10px', fontWeight: 700 }}>
-                      {req.my_response_status === 'accepted' && 'You confirmed you can help'}
-                      {req.my_response_status === 'declined' && 'You marked yourself unavailable'}
-                      {req.my_response_status === 'arrived' && 'You arrived to donate — thank you!'}
-                    </p>
-                  )}
-                </div>
-              ))}
+
+                    {/* Contact Details */}
+                    <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                      <p className="req-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '3px 0' }}>
+                        <IonIcon icon={personOutline} style={{ fontSize: '0.9rem' }} /> Contact Person: <strong>{req.contact_person}</strong>
+                      </p>
+                      <p className="req-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '3px 0' }}>
+                        <IonIcon icon={callOutline} style={{ fontSize: '0.9rem' }} /> Contact No.:{' '}
+                        <a href={`tel:${req.contact_number}`} style={{ color: 'var(--ion-color-primary, #b3122b)', fontWeight: 600, textDecoration: 'none' }}>
+                          {req.contact_number}
+                        </a>
+                      </p>
+                    </div>
+
+                    {/* Button to View Pinned Location Map */}
+                    {hasCoords && (
+                      <div style={{ marginTop: '10px' }}>
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            borderColor: '#B3122B',
+                            color: '#B3122B',
+                            fontWeight: 600,
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            fontSize: '0.82rem'
+                          }}
+                          onClick={() => setSelectedLocationReq(req)}
+                        >
+                          <IonIcon icon={locationOutline} style={{ fontSize: '1.1rem' }} />
+                          View Pinned Location
+                        </button>
+                      </div>
+                    )}
+
+                    {req.my_response_status === 'not_responded' ? (
+                      <div className="req-actions" style={{ marginTop: '12px' }}>
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          disabled={respondingId === req.id}
+                          onClick={() => respondToRequest(req.id, 'declined')}
+                        >
+                          Not available
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          disabled={respondingId === req.id}
+                          onClick={() => respondToRequest(req.id, 'accepted')}
+                        >
+                          I can help
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="status-meta" style={{ marginTop: '10px', fontWeight: 700 }}>
+                        {req.my_response_status === 'accepted' && 'You confirmed you can help'}
+                        {req.my_response_status === 'declined' && 'You marked yourself unavailable'}
+                        {req.my_response_status === 'arrived' && 'You arrived to donate — thank you!'}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </>
           ) : (
-            /* My Requests List View */
             <div className="my-requests-view">
               {myRequests.length === 0 && (
                 <p className="status-meta" style={{ padding: '12px 4px' }}>
@@ -227,15 +280,81 @@ const RequestsList: React.FC = () => {
 
         </div>
 
-        {/* Floating Action Button to Create Request */}
+        {/* Floating Action Button */}
         <IonFab slot="fixed" vertical="bottom" horizontal="end" className="fab-container">
-            <IonFabButton
-                onClick={() => history.push('/app/requests/new')}
-                className="custom-fab-icon-only"
-                aria-label="Create emergency blood request">
-                <IonIcon icon={add} />
-            </IonFabButton>
+          <IonFabButton
+            onClick={() => history.push('/app/requests/new')}
+            className="custom-fab-icon-only"
+            aria-label="Create emergency blood request">
+            <IonIcon icon={add} />
+          </IonFabButton>
         </IonFab>
+
+        {/* Safe Location Viewer Modal */}
+        <IonModal
+          isOpen={!!selectedLocationReq}
+          onDidDismiss={() => setSelectedLocationReq(null)}
+        >
+          {selectedLocationReq && (
+            (() => {
+              const lat = Number(selectedLocationReq.latitude);
+              const lng = Number(selectedLocationReq.longitude);
+              const isValid = !isNaN(lat) && !isNaN(lng);
+
+              if (!isValid) {
+                return (
+                  <div style={{ padding: '24px', textAlign: 'center' }}>
+                    <p>Location coordinates are unavailable for this request.</p>
+                    <IonButton color="medium" onClick={() => setSelectedLocationReq(null)}>Close</IonButton>
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ padding: '16px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#1B2430' }}>
+                        {selectedLocationReq.hospital_venue}
+                      </h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#6B7280' }}>
+                        Patient: {selectedLocationReq.patient_name} · {selectedLocationReq.blood_type}
+                      </p>
+                    </div>
+                    <IonButton fill="clear" onClick={() => setSelectedLocationReq(null)}>
+                      <IonIcon slot="icon-only" icon={closeOutline} />
+                    </IonButton>
+                  </div>
+
+                  <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', border: '1px solid #ccc' }}>
+                    <MapContainer
+                      center={[lat, lng]}
+                      zoom={16}
+                      style={{ height: '100%', width: '100%' }}
+                    >
+                      <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; OpenStreetMap contributors'
+                      />
+                      <Marker position={[lat, lng]} icon={customMarkerIcon}>
+                        <Popup>
+                          <strong>{selectedLocationReq.hospital_venue}</strong><br />
+                          Patient: {selectedLocationReq.patient_name}
+                        </Popup>
+                      </Marker>
+                    </MapContainer>
+                  </div>
+
+                  <div style={{ marginTop: '12px' }}>
+                    <IonButton expand="block" color="medium" onClick={() => setSelectedLocationReq(null)}>
+                      Close Map
+                    </IonButton>
+                  </div>
+                </div>
+              );
+            })()
+          )}
+        </IonModal>
 
         <IonToast
           isOpen={!!toastMessage}

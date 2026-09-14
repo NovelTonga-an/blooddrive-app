@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 
 class LocationTrackingService {
   private watchId: string | null = null;
+  private apiBaseUrl = 'https://darkgoldenrod-spoonbill-897628.hostingersite.com/api'; 
 
   async startTracking(token: string) {
     try {
@@ -16,7 +17,6 @@ class LocationTrackingService {
           }
         }
 
-        // Native Capacitor location watching
         this.watchId = await Geolocation.watchPosition(
           { enableHighAccuracy: true, timeout: 10000 },
           (position, err) => {
@@ -30,7 +30,6 @@ class LocationTrackingService {
           }
         );
       } else {
-        // Web Browser Fallback (navigator.geolocation)
         if (!navigator.geolocation) {
           console.warn('Geolocation not supported by browser.');
           return;
@@ -63,10 +62,23 @@ class LocationTrackingService {
   }
 
   private async sendLocationToBackend(token: string, latitude: number, longitude: number) {
-    console.log(`Sending GPS to backend: Lat ${latitude}, Lng ${longitude}`);
-    // Optional: Send coords via fetch() or axios to your Laravel API endpoint
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/profile/location`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ latitude, longitude })
+      });
+
+      if (!response.ok) {
+        console.error('Failed to sync location to backend, status:', response.status);
+      }
+    } catch (error) {
+      console.error('Error sending location to backend:', error);
+    }
   }
 }
 
-// Export the instantiated singleton object matching your App.tsx import
 export const locationService = new LocationTrackingService();

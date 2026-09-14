@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Preferences } from '@capacitor/preferences';
 import { authApi, AuthUser, RegisterPayload, LoginPayload } from '../services/api';
+import { locationService } from '../services/LocationService'; // 1. Import location service
 
 const TOKEN_KEY = 'donor_auth_token';
 const USER_KEY = 'donor_auth_user';
@@ -28,7 +29,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (storedToken && storedUser) {
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+
+        // 2. Start tracking if already logged in and role is donor
+        if (parsedUser.role === 'donor') {
+          locationService.startTracking(storedToken);
+        }
       }
 
       setIsLoading(false);
@@ -40,6 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await Preferences.set({ key: USER_KEY, value: JSON.stringify(newUser) });
     setToken(newToken);
     setUser(newUser);
+
+    // 3. Start tracking immediately upon a fresh login or registration if user is a donor
+    if (newUser.role === 'donor') {
+      locationService.startTracking(newToken);
+    }
   }
 
   async function login(payload: LoginPayload) {
@@ -57,9 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         await authApi.logout(token);
       } catch {
-        // Token may already be invalid server-side — clear the local session regardless.
+        // Token may already be invalid server-side — clear local session regardless.
       }
     }
+
+    // Stop tracking when logging out
+    await locationService.stopTracking();
 
     await Preferences.remove({ key: TOKEN_KEY });
     await Preferences.remove({ key: USER_KEY });

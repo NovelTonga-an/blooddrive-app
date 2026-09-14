@@ -1,6 +1,7 @@
-// Local dev: Laravel served via `php artisan serve` (http://localhost:8000).
-// If testing on a physical device/emulator, replace 'localhost' with your machine's LAN IP.
-export const API_BASE_URL = 'https://darkgoldenrod-spoonbill-897628.hostingersite.com/api';
+// Uses Vercel environment variable if present, falling back to Hostinger live backend API
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'https://darkgoldenrod-spoonbill-897628.hostingersite.com/api';
 
 export class ApiError extends Error {
   status: number;
@@ -64,7 +65,7 @@ export interface RegisterPayload {
   password_confirmation: string;
   blood_type_id: number;
   barangay_id?: number | null;
-  birthdate: string; // YYYY-MM-DD
+  birthdate: string;
   gender: 'male' | 'female' | 'other';
 }
 
@@ -166,6 +167,8 @@ export interface EmergencyRequestItem {
   created_at: string;
   blood_type: string;
   barangay_name: string | null;
+  latitude: number | null;
+  longitude: number | null;
   my_response_status: 'accepted' | 'declined' | 'arrived' | 'not_responded';
 }
 
@@ -225,6 +228,8 @@ export interface MyEmergencyRequestDetail extends MyEmergencyRequestItem {
   contact_number: string;
   requested_by_user_id: number;
   is_verified: boolean;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export const myEmergencyRequestApi = {

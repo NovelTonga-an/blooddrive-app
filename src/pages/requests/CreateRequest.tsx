@@ -10,11 +10,52 @@ import {
   IonText,
   IonSpinner
 } from '@ionic/react';
-import { arrowBackOutline, informationCircleOutline, cameraOutline } from 'ionicons/icons';
+import { arrowBackOutline, informationCircleOutline, cameraOutline, locationOutline, navigateOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
+import { Geolocation } from '@capacitor/geolocation';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
 import { useAuth } from '../../context/AuthContext';
 import { ApiError, lookupApi, LookupOption, myEmergencyRequestApi } from '../../services/api';
 import './Requests.css';
+
+// Fix for Leaflet default marker icon path issue in Webpack/Vite
+import markerIconPng from 'leaflet/dist/images/marker-icon.png';
+import markerShadowPng from 'leaflet/dist/images/marker-shadow.png';
+
+const customMarkerIcon = L.icon({
+  iconUrl: markerIconPng,
+  shadowUrl: markerShadowPng,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41]
+});
+
+// Helper Component to handle user map clicks and drag events
+const LocationPickerMarker: React.FC<{
+  position: [number, number];
+  setPosition: (pos: [number, number]) => void;
+}> = ({ position, setPosition }) => {
+  const map = useMapEvents({
+    click(e) {
+      setPosition([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+
+  return (
+    <Marker
+      position={position}
+      draggable={true}
+      icon={customMarkerIcon}
+      eventHandlers={{
+        dragend(e) {
+          const marker = e.target;
+          const pos = marker.getLatLng();
+          setPosition([pos.lat, pos.lng]);
+        },
+      }}
+    />
+  );
+};
 
 const CreateRequest: React.FC = () => {
   const history = useHistory();
@@ -29,6 +70,11 @@ const CreateRequest: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  // Map Pinned Coordinates State (Default: Cervantes MHO)
+  const [mapCenter, setMapCenter] = useState<[number, number]>([16.9850, 120.7350]);
+  const [pinnedCoords, setPinnedCoords] = useState<[number, number]>([16.9850, 120.7350]);
+  const [isLocating, setIsLocating] = useState(false);
+
   const isDonor = user?.role === 'donor';
 
   const [formData, setFormData] = useState({
@@ -40,6 +86,25 @@ const CreateRequest: React.FC = () => {
     contactPerson: '',
     contactPhone: ''
   });
+
+  // Fetch donor's current GPS location and center map on it
+  const getCurrentLocation = async () => {
+    setIsLocating(true);
+    setError(null);
+    try {
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 10000
+      });
+      const coords: [number, number] = [position.coords.latitude, position.coords.longitude];
+      setMapCenter(coords);
+      setPinnedCoords(coords);
+    } catch {
+      setError('Unable to fetch GPS. You can manually tap or drag the pin on the map below.');
+    } finally {
+      setIsLocating(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -54,6 +119,8 @@ const CreateRequest: React.FC = () => {
         setError('Unable to load blood types or barangays.');
       }
     })();
+
+    getCurrentLocation();
   }, []);
 
   const handleChange = (key: string, val: any) => {
@@ -84,11 +151,19 @@ const CreateRequest: React.FC = () => {
       const data = new FormData();
       data.append('patient_name', formData.patientName);
       data.append('blood_type_id', String(formData.bloodTypeId));
-      data.append('barangay_id', String(formData.barangayId));
+      
+      if (formData.barangayId) {
+        data.append('barangay_id', String(formData.barangayId));
+      }
+
       data.append('hospital_venue', formData.hospital);
       data.append('units_needed', String(formData.units));
       data.append('contact_person', formData.contactPerson);
       data.append('contact_number', formData.contactPhone);
+
+      // Pass pinned map coordinates for backend Haversine calculations
+      data.append('latitude', String(pinnedCoords[0]));
+      data.append('longitude', String(pinnedCoords[1]));
 
       if (selectedFile) {
         data.append('request_form_image', selectedFile);
@@ -150,7 +225,7 @@ const CreateRequest: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Barangay</label>
+              <label className="form-label">Barangay (Optional)</label>
               <IonSelect
                 mode="md"
                 fill="outline"
@@ -166,7 +241,7 @@ const CreateRequest: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Hospital / venue</label>
+              <label className="form-label">Hospital / venue name</label>
               <IonInput
                 mode="md"
                 fill="outline"
@@ -175,6 +250,33 @@ const CreateRequest: React.FC = () => {
                 onIonInput={(e) => handleChange('hospital', e.detail.value!)}
                 className="custom-form-input"
               />
+            </div>
+
+            {/* Interactive Location Pinning Map */}
+            <div className="form-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label className="form-label" style={{ margin: 0 }}>Pin Extraction Location on Map *</label>
+                <IonButton fill="clear" size="small" onClick={getCurrentLocation} disabled={isLocating}>
+                  <IonIcon slot="icon-only" icon={navigateOutline} />
+                </IonButton>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#666', margin: '0 0 8px' }}>
+                Tap or drag the pin to pinpoint the exact hospital or extraction venue.
+              </p>
+
+              <div style={{ height: '220px', width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid #ccc' }}>
+                <MapContainer center={mapCenter} zoom={14} style={{ height: '100%', width: '100%' }}>
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; OpenStreetMap contributors'
+                  />
+                  <LocationPickerMarker position={pinnedCoords} setPosition={setPinnedCoords} />
+                </MapContainer>
+              </div>
+
+              <div style={{ marginTop: '6px', fontSize: '0.8rem', color: '#1E7A4C', fontWeight: 600 }}>
+                Pinned: Lat {pinnedCoords[0].toFixed(5)}, Lng {pinnedCoords[1].toFixed(5)}
+              </div>
             </div>
 
             <div className="form-group">
@@ -264,7 +366,7 @@ const CreateRequest: React.FC = () => {
             <div className="info-note">
               <IonIcon icon={informationCircleOutline} />
               <span>
-                Your request and hospital form photo will be reviewed by RHU staff before dispatching alerts to donors.
+                Your request and pinned extraction location will be verified by RHU staff before dispatching alerts to nearby donors.
               </span>
             </div>
 
