@@ -14,7 +14,8 @@ import {
   IonCard,
   IonCardContent,
   IonSpinner,
-  IonRouterLink
+  IonRouterLink,
+  IonModal
 } from '@ionic/react';
 import {
   personOutline,
@@ -26,7 +27,9 @@ import {
   maleFemaleOutline,
   lockClosedOutline,
   eyeOutline,
-  eyeOffOutline
+  eyeOffOutline,
+  checkmarkCircleOutline,
+  downloadOutline
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -42,6 +45,10 @@ const Register: React.FC = () => {
   const [barangays, setBarangays] = useState<LookupOption[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Modal & PWA States
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -68,6 +75,15 @@ const Register: React.FC = () => {
         setError('Unable to load blood types / barangays. Please check your connection.');
       }
     })();
+
+    // Listen for browser PWA install prompt
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
   const handleChange = (key: string, value: any) => {
@@ -91,7 +107,9 @@ const Register: React.FC = () => {
         birthdate: formData.birthdate,
         gender: formData.gender as 'male' | 'female' | 'other',
       });
-      history.replace('/app/home');
+      
+      // Open PWA install prompt modal on successful registration
+      setShowInstallModal(true);
     } catch (err) {
       if (err instanceof ApiError) {
         const firstFieldError = err.errors && Object.values(err.errors)[0]?.[0];
@@ -102,6 +120,22 @@ const Register: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        console.log('Donor installed PWA app');
+      }
+      setDeferredPrompt(null);
+    }
+  };
+
+  const handleContinueToDashboard = () => {
+    setShowInstallModal(false);
+    history.replace('/app/home');
   };
 
   return (
@@ -329,6 +363,40 @@ const Register: React.FC = () => {
               </IonCol>
             </IonRow>
           </IonGrid>
+
+          {/* Post-Registration App Installation Modal */}
+          <IonModal isOpen={showInstallModal} backdropDismiss={false}>
+            <IonContent className="ion-padding ion-text-center">
+              <div style={{ padding: '24px 16px' }}>
+                <IonIcon icon={checkmarkCircleOutline} color="success" style={{ fontSize: '72px' }} />
+                <h2 style={{ fontWeight: 'bold', marginTop: '12px' }}>Registration Successful!</h2>
+                <p style={{ color: '#666', marginBottom: '24px', lineHeight: '1.5' }}>
+                  To ensure emergency blood requests can match your location in real-time, install the BloodDrive app on your device.
+                </p>
+
+                {deferredPrompt ? (
+                  <IonButton expand="block" color="danger" onClick={handleInstallClick} style={{ marginBottom: '12px' }}>
+                    <IonIcon slot="start" icon={downloadOutline} />
+                    INSTALL APP TO HOME SCREEN
+                  </IonButton>
+                ) : (
+                  <div style={{ backgroundColor: '#f4f5f8', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+                    <IonText color="dark">
+                      <p style={{ fontSize: '0.85rem', margin: 0 }}>
+                        <strong>iOS (Safari) Installation:</strong><br />
+                        Tap the <strong>Share</strong> button at the bottom of Safari, then select <strong>"Add to Home Screen"</strong>.
+                      </p>
+                    </IonText>
+                  </div>
+                )}
+
+                <IonButton expand="block" fill="clear" onClick={handleContinueToDashboard}>
+                  Continue to App Dashboard
+                </IonButton>
+              </div>
+            </IonContent>
+          </IonModal>
+
         </div>
       </IonContent>
     </IonPage>

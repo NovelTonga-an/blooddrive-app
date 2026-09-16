@@ -1,9 +1,9 @@
 import { Geolocation } from '@capacitor/geolocation';
 import { Capacitor } from '@capacitor/core';
+import { API_BASE_URL } from './api';
 
 class LocationTrackingService {
   private watchId: string | null = null;
-  private apiBaseUrl = 'https://darkgoldenrod-spoonbill-897628.hostingersite.com/api'; 
 
   async startTracking(token: string) {
     try {
@@ -18,7 +18,7 @@ class LocationTrackingService {
         }
 
         this.watchId = await Geolocation.watchPosition(
-          { enableHighAccuracy: true, timeout: 10000 },
+          { enableHighAccuracy: true, timeout: 15000 },
           (position, err) => {
             if (err) {
               console.error('Error watching location:', err);
@@ -40,7 +40,7 @@ class LocationTrackingService {
             this.sendLocationToBackend(token, position.coords.latitude, position.coords.longitude);
           },
           (error) => console.error('Web Location Error:', error.message),
-          { enableHighAccuracy: true, timeout: 10000 }
+          { enableHighAccuracy: true, timeout: 15000 }
         );
         this.watchId = id.toString();
       }
@@ -63,16 +63,25 @@ class LocationTrackingService {
 
   private async sendLocationToBackend(token: string, latitude: number, longitude: number) {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/profile/location`, {
+      const response = await fetch(`${API_BASE_URL}/profile/location`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
         },
         body: JSON.stringify({ latitude, longitude })
       });
 
-      if (!response.ok) {
+      const data = await response.json().catch(() => null);
+
+      if (response.ok) {
+        if (data?.recorded) {
+          console.log(`[Location Sync] Updated database history (Moved >= 10 km): ${latitude}, ${longitude}`);
+        } else {
+          console.log(`[Location Sync] Skip history log (${data?.message ?? 'Moved < 10 km'})`);
+        }
+      } else {
         console.error('Failed to sync location to backend, status:', response.status);
       }
     } catch (error) {

@@ -50,8 +50,12 @@
 
     <!-- Location Permissions for Emergency Radius Broadcasting -->
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>BloodDrive uses your location to match you with nearby emergency blood requests and donation drives.</string>
-    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>BloodDrive uses your location to alert you when an urgent blood request is created near your area.</string>
-</dict>
-</plist>
+<string>BloodDrive uses your location to match you with nearby emergency blood requests.</string>
+<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>BloodDrive checks your location periodically to alert you when urgent blood requests occur near you.</string>
+
+<key>UIBackgroundModes</key>
+<array>
+    <string>location</string>
+    <string>fetch</string>
+</array>

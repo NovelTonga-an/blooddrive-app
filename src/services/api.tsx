@@ -1,7 +1,10 @@
-// Uses Vercel environment variable if present, falling back to Hostinger live backend API
+// Uses VITE_API_BASE_URL environment variable if set, falling back to local XAMPP backend API
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  'https://darkgoldenrod-spoonbill-897628.hostingersite.com/api';
+  'http://127.0.0.1:8000/api';
+
+// NOTE: If running Laravel via 'php artisan serve', change the fallback above to:
+// 'http://127.0.0.1:8000/api'
 
 export class ApiError extends Error {
   status: number;

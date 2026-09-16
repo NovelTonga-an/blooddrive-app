@@ -12,6 +12,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@capacitor-community/background-geolocation": "^1.2.26",
     "@capacitor/android": "^8.5.1",
     "@capacitor/app": "8.1.1",
     "@capacitor/core": "8.5.0",
@@ -23,6 +24,7 @@
     "@capacitor/status-bar": "8.0.3",
     "@ionic/react": "^9.0.0",
     "@ionic/react-router": "^8.8.19",
+    "@transistorsoft/capacitor-background-geolocation": "^9.5.0",
     "@types/leaflet": "^1.9.22",
     "ionicons": "^8.1.0",
     "leaflet": "^1.9.4",

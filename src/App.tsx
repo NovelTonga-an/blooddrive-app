@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Redirect, Route, RouteProps } from 'react-router-dom';
 import { IonApp, IonRouterOutlet, IonSpinner, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
@@ -19,7 +19,6 @@ import 'leaflet/dist/leaflet.css';
 
 /* Context & Services */
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { locationService } from './services/LocationService';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import MainTabs from './components/MainTabs';
@@ -55,20 +54,7 @@ const GuestRoute: React.FC<RouteProps> = ({ component: Component, ...rest }) => 
 };
 
 const AppRoutes: React.FC = () => {
-  const { isLoading, token, user } = useAuth();
-
-  // Start watching location when donor is authenticated; stop when logged out
-  useEffect(() => {
-    if (token && user?.role === 'donor') {
-      locationService.startTracking(token);
-    } else {
-      locationService.stopTracking();
-    }
-
-    return () => {
-      locationService.stopTracking();
-    };
-  }, [token, user]);
+  const { isLoading, token } = useAuth();
 
   if (isLoading) {
     return (
