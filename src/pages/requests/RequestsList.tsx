@@ -16,7 +16,7 @@ import {
   IonButton,
   RefresherEventDetail
 } from '@ionic/react';
-import { add, searchOutline, personOutline, callOutline, locationOutline, closeOutline } from 'ionicons/icons';
+import { add, searchOutline, personOutline, callOutline, locationOutline, closeOutline, warningOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -56,7 +56,7 @@ function statusPillLabel(status: MyEmergencyRequestItem['status']): { label: str
 
 const RequestsList: React.FC = () => {
   const history = useHistory();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const [segment, setSegment] = useState<'active' | 'mine'>('active');
 
@@ -73,18 +73,25 @@ const RequestsList: React.FC = () => {
     if (!token) return;
 
     try {
-      const [activeRes, mineRes] = await Promise.all([
-        emergencyRequestApi.list(token),
-        myEmergencyRequestApi.list(token),
-      ]);
-      setActiveRequests(activeRes.requests);
+      // Always allow fetching 'myRequests' so donors can track requests they submitted
+      const mineRes = await myEmergencyRequestApi.list(token);
       setMyRequests(mineRes);
+
+      // Only fetch active emergency broadcast feeds if approved
+      if (user?.status === 'approved') {
+        const activeRes = await emergencyRequestApi.list(token);
+        setActiveRequests(activeRes.requests);
+      }
     } catch (err) {
-      setToastMessage(err instanceof ApiError ? err.message : 'Unable to load requests.');
+      if (err instanceof ApiError && err.status === 403) {
+        // Handled by clearance guard banner
+      } else {
+        setToastMessage(err instanceof ApiError ? err.message : 'Unable to load requests.');
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, user]);
 
   useEffect(() => {
     loadRequests();
@@ -128,154 +135,169 @@ const RequestsList: React.FC = () => {
             </div>
           </div>
 
-          {/* Segmented Control Switch */}
-          <IonSegment
-            value={segment}
-            onIonChange={(e) => setSegment(e.detail.value as 'active' | 'mine')}
-            className="custom-segmented"
-            mode="ios"
-          >
-            <IonSegmentButton value="active">
-              <IonLabel>Active</IonLabel>
-            </IonSegmentButton>
-            <IonSegmentButton value="mine">
-              <IonLabel>My Requests</IonLabel>
-            </IonSegmentButton>
-          </IonSegment>
-
-          {isLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
-              <IonSpinner name="crescent" />
+          {/* Clearance Check Guard for Active Broadcast Feed */}
+          {user?.status !== 'approved' && segment === 'active' ? (
+            <div style={{ background: '#FBF0DD', border: '1px solid #E0A63E', borderRadius: '16px', padding: '24px 18px', textAlign: 'center', marginTop: '16px' }}>
+              <IonIcon icon={warningOutline} style={{ fontSize: '2.5rem', color: '#8A5B12', marginBottom: '8px' }} />
+              <h3 style={{ color: '#8A5B12', fontWeight: 800, fontSize: '1.1rem', margin: '0 0 6px' }}>
+                Account Pending Clearance
+              </h3>
+              <p style={{ color: '#6B7280', fontSize: '0.85rem', lineHeight: 1.5, margin: 0 }}>
+                Active emergency blood donation broadcasts are restricted until your MHO health clearance is verified. You can still submit and track your own requests under the &quot;My Requests&quot; tab.
+              </p>
             </div>
-          ) : segment === 'active' ? (
-            <>
-              {activeRequests.length === 0 && (
-                <p className="status-meta" style={{ padding: '12px 4px' }}>No emergency requests right now.</p>
-              )}
-
-              {activeRequests.map((req) => {
-                const lat = Number(req.latitude);
-                const lng = Number(req.longitude);
-                const hasCoords = 
-                  req.latitude !== null && 
-                  req.longitude !== null && 
-                  !isNaN(lat) && 
-                  !isNaN(lng);
-
-                return (
-                  <div key={req.id} className="req-card moderate">
-                    <div className="req-top">
-                      <div>
-                        <h3 className="req-title" style={{ marginTop: '4px' }}>
-                          Patient: {req.patient_name}
-                        </h3>
-                        <p className="req-meta">{req.hospital_venue} · {req.barangay_name ?? 'Cervantes'}</p>
-                        <p className="req-meta">{req.units_needed} unit(s) needed</p>
-                      </div>
-                      <div className="req-type">{req.blood_type}</div>
-                    </div>
-
-                    {/* Contact Details */}
-                    <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                      <p className="req-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '3px 0' }}>
-                        <IonIcon icon={personOutline} style={{ fontSize: '0.9rem' }} /> Contact Person: <strong>{req.contact_person}</strong>
-                      </p>
-                      <p className="req-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '3px 0' }}>
-                        <IonIcon icon={callOutline} style={{ fontSize: '0.9rem' }} /> Contact No.:{' '}
-                        <a href={`tel:${req.contact_number}`} style={{ color: 'var(--ion-color-primary, #b3122b)', fontWeight: 600, textDecoration: 'none' }}>
-                          {req.contact_number}
-                        </a>
-                      </p>
-                    </div>
-
-                    {/* Button to View Pinned Location Map */}
-                    {hasCoords && (
-                      <div style={{ marginTop: '10px' }}>
-                        <button
-                          type="button"
-                          className="btn btn-ghost"
-                          style={{
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            borderColor: '#B3122B',
-                            color: '#B3122B',
-                            fontWeight: 600,
-                            padding: '6px 12px',
-                            borderRadius: '8px',
-                            fontSize: '0.82rem'
-                          }}
-                          onClick={() => setSelectedLocationReq(req)}
-                        >
-                          <IonIcon icon={locationOutline} style={{ fontSize: '1.1rem' }} />
-                          View Pinned Location
-                        </button>
-                      </div>
-                    )}
-
-                    {req.my_response_status === 'not_responded' ? (
-                      <div className="req-actions" style={{ marginTop: '12px' }}>
-                        <button
-                          type="button"
-                          className="btn btn-ghost"
-                          disabled={respondingId === req.id}
-                          onClick={() => respondToRequest(req.id, 'declined')}
-                        >
-                          Not available
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          disabled={respondingId === req.id}
-                          onClick={() => respondToRequest(req.id, 'accepted')}
-                        >
-                          I can help
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="status-meta" style={{ marginTop: '10px', fontWeight: 700 }}>
-                        {req.my_response_status === 'accepted' && 'You confirmed you can help'}
-                        {req.my_response_status === 'declined' && 'You marked yourself unavailable'}
-                        {req.my_response_status === 'arrived' && 'You arrived to donate — thank you!'}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </>
           ) : (
-            <div className="my-requests-view">
-              {myRequests.length === 0 && (
-                <p className="status-meta" style={{ padding: '12px 4px' }}>
-                  You haven't submitted any emergency requests yet.
-                </p>
-              )}
+            <>
+              {/* Segmented Control Switch */}
+              <IonSegment
+                value={segment}
+                onIonChange={(e) => setSegment(e.detail.value as 'active' | 'mine')}
+                className="custom-segmented"
+                mode="ios"
+              >
+                <IonSegmentButton value="active">
+                  <IonLabel>Active</IonLabel>
+                </IonSegmentButton>
+                <IonSegmentButton value="mine">
+                  <IonLabel>My Requests</IonLabel>
+                </IonSegmentButton>
+              </IonSegment>
 
-              {myRequests.map((req) => {
-                const pill = statusPillLabel(req.status);
+              {isLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+                  <IonSpinner name="crescent" />
+                </div>
+              ) : segment === 'active' ? (
+                <>
+                  {activeRequests.length === 0 && (
+                    <p className="status-meta" style={{ padding: '12px 4px' }}>No emergency requests right now.</p>
+                  )}
 
-                return (
-                  <div
-                    key={req.id}
-                    className="status-card"
-                    onClick={() => history.push(`/app/requests/detail/${req.id}`)}
-                  >
-                    <div className="status-top">
-                      <span className={`status-pill ${pill.className}`}>{pill.label}</span>
-                      <span className="req-type">{req.blood_type}</span>
-                    </div>
-                    <h3 className="status-title">{req.patient_name}</h3>
-                    <p className="status-meta">{req.hospital_venue} · {req.units_needed} units needed</p>
-                    <p className="status-meta">
-                      {req.notified_count} notified · {req.sent_count} sent · {req.accepted_count} willing
+                  {activeRequests.map((req) => {
+                    const lat = Number(req.latitude);
+                    const lng = Number(req.longitude);
+                    const hasCoords = 
+                      req.latitude !== null && 
+                      req.longitude !== null && 
+                      !isNaN(lat) && 
+                      !isNaN(lng);
+
+                    return (
+                      <div key={req.id} className="req-card moderate">
+                        <div className="req-top">
+                          <div>
+                            <h3 className="req-title" style={{ marginTop: '4px' }}>
+                              Patient: {req.patient_name}
+                            </h3>
+                            <p className="req-meta">{req.hospital_venue} · {req.barangay_name ?? 'Cervantes'}</p>
+                            <p className="req-meta">{req.units_needed} unit(s) needed</p>
+                          </div>
+                          <div className="req-type">{req.blood_type}</div>
+                        </div>
+
+                        {/* Contact Details */}
+                        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                          <p className="req-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '3px 0' }}>
+                            <IonIcon icon={personOutline} style={{ fontSize: '0.9rem' }} /> Contact Person: <strong>{req.contact_person}</strong>
+                          </p>
+                          <p className="req-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '3px 0' }}>
+                            <IonIcon icon={callOutline} style={{ fontSize: '0.9rem' }} /> Contact No.:{' '}
+                            <a href={`tel:${req.contact_number}`} style={{ color: 'var(--ion-color-primary, #b3122b)', fontWeight: 600, textDecoration: 'none' }}>
+                              {req.contact_number}
+                            </a>
+                          </p>
+                        </div>
+
+                        {/* Button to View Pinned Location Map */}
+                        {hasCoords && (
+                          <div style={{ marginTop: '10px' }}>
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                borderColor: '#B3122B',
+                                color: '#B3122B',
+                                fontWeight: 600,
+                                padding: '6px 12px',
+                                borderRadius: '8px',
+                                fontSize: '0.82rem'
+                              }}
+                              onClick={() => setSelectedLocationReq(req)}
+                            >
+                              <IonIcon icon={locationOutline} style={{ fontSize: '1.1rem' }} />
+                              View Pinned Location
+                            </button>
+                          </div>
+                        )}
+
+                        {req.my_response_status === 'not_responded' ? (
+                          <div className="req-actions" style={{ marginTop: '12px' }}>
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              disabled={respondingId === req.id}
+                              onClick={() => respondToRequest(req.id, 'declined')}
+                            >
+                              Not available
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              disabled={respondingId === req.id}
+                              onClick={() => respondToRequest(req.id, 'accepted')}
+                            >
+                              I can help
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="status-meta" style={{ marginTop: '10px', fontWeight: 700 }}>
+                            {req.my_response_status === 'accepted' && 'You confirmed you can help'}
+                            {req.my_response_status === 'declined' && 'You marked yourself unavailable'}
+                            {req.my_response_status === 'arrived' && 'You arrived to donate — thank you!'}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              ) : (
+                <div className="my-requests-view">
+                  {myRequests.length === 0 && (
+                    <p className="status-meta" style={{ padding: '12px 4px' }}>
+                      You haven&apos;t submitted any emergency requests yet.
                     </p>
-                    <a className="status-link">View timeline & notified donors →</a>
-                  </div>
-                );
-              })}
-            </div>
+                  )}
+
+                  {myRequests.map((req) => {
+                    const pill = statusPillLabel(req.status);
+
+                    return (
+                      <div
+                        key={req.id}
+                        className="status-card"
+                        onClick={() => history.push(`/app/requests/detail/${req.id}`)}
+                      >
+                        <div className="status-top">
+                          <span className={`status-pill ${pill.className}`}>{pill.label}</span>
+                          <span className="req-type">{req.blood_type}</span>
+                        </div>
+                        <h3 className="status-title">{req.patient_name}</h3>
+                        <p className="status-meta">{req.hospital_venue} · {req.units_needed} units needed</p>
+                        <p className="status-meta">
+                          {req.notified_count} notified · {req.sent_count} sent · {req.accepted_count} willing
+                        </p>
+                        <a className="status-link">View timeline & notified donors →</a>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
 
         </div>

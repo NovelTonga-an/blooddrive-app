@@ -12,7 +12,7 @@ import {
   IonSpinner,
   RefresherEventDetail
 } from '@ionic/react';
-import { searchOutline, locationOutline, calendarOutline, checkmarkCircleOutline, closeCircleOutline } from 'ionicons/icons';
+import { searchOutline, locationOutline, calendarOutline, checkmarkCircleOutline, closeCircleOutline, warningOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { driveApi, Drive, ApiError } from '../../services/api';
@@ -20,7 +20,7 @@ import './Drives.css';
 
 const DrivesList: React.FC = () => {
   const history = useHistory();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const [segment, setSegment] = useState<'upcoming' | 'registered'>('upcoming');
   const [activeChip, setActiveChip] = useState('all');
@@ -31,17 +31,24 @@ const DrivesList: React.FC = () => {
   const [respondingId, setRespondingId] = useState<number | null>(null);
 
   const fetchDrives = useCallback(async () => {
-    if (!token) return;
+    if (!token || user?.status !== 'approved') {
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await driveApi.list(token);
       setDrives(response.drives);
     } catch (err) {
-      setToastMessage(err instanceof ApiError ? err.message : 'Unable to load donation drives.');
+      if (err instanceof ApiError && err.status === 403) {
+        // Handled by clearance guard banner
+      } else {
+        setToastMessage(err instanceof ApiError ? err.message : 'Unable to load donation drives.');
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, user]);
 
   useEffect(() => {
     fetchDrives();
@@ -133,176 +140,191 @@ const DrivesList: React.FC = () => {
             </div>
           </div>
 
-          {/* Segmented Control */}
-          <IonSegment
-            value={segment}
-            onIonChange={(e) => setSegment(e.detail.value as 'upcoming' | 'registered')}
-            className="custom-segmented"
-            mode="ios"
-          >
-            <IonSegmentButton value="upcoming">
-              <IonLabel>All Drives</IonLabel>
-            </IonSegmentButton>
-            <IonSegmentButton value="registered">
-              <IonLabel>My Registrations</IonLabel>
-            </IonSegmentButton>
-          </IonSegment>
-
-          {isLoading ? (
-            <div style={{ textAlign: 'center', padding: '48px 0' }}>
-              <IonSpinner name="dots" />
+          {/* Clearance Check Guard */}
+          {user?.status !== 'approved' ? (
+            <div style={{ background: '#FBF0DD', border: '1px solid #E0A63E', borderRadius: '16px', padding: '24px 18px', textAlign: 'center', marginTop: '16px' }}>
+              <IonIcon icon={warningOutline} style={{ fontSize: '2.5rem', color: '#8A5B12', marginBottom: '8px' }} />
+              <h3 style={{ color: '#8A5B12', fontWeight: 800, fontSize: '1.1rem', margin: '0 0 6px' }}>
+                Account Pending Clearance
+              </h3>
+              <p style={{ color: '#6B7280', fontSize: '0.85rem', lineHeight: 1.5, margin: 0 }}>
+                Your donor account is currently awaiting verification from the Municipal Health Office (MHO). Upcoming donation drives will be unlocked once your health clearance is approved.
+              </p>
             </div>
-          ) : segment === 'upcoming' ? (
-            <>
-              {/* Filter Chips */}
-              <div className="chip-row">
-                <button
-                  type="button"
-                  className={`chip ${activeChip === 'all' ? 'active' : ''}`}
-                  onClick={() => setActiveChip('all')}
-                >
-                  All Drives
-                </button>
-                <button
-                  type="button"
-                  className={`chip ${activeChip === 'cervantes' ? 'active' : ''}`}
-                  onClick={() => setActiveChip('cervantes')}
-                >
-                  Poblacion
-                </button>
-                <button
-                  type="button"
-                  className={`chip ${activeChip === 'this-month' ? 'active' : ''}`}
-                  onClick={() => setActiveChip('this-month')}
-                >
-                  This Month
-                </button>
-              </div>
-
-              {upcomingDrives.length === 0 && (
-                <p style={{ textAlign: 'center', color: '#6B7280', padding: '32px 0' }}>
-                  No upcoming drives match this filter right now.
-                </p>
-              )}
-
-              {upcomingDrives.map((drive) => {
-                const { day, month } = formatDateParts(drive.drive_date);
-                const status = drive.my_response_status;
-
-                return (
-                  <div
-                    key={drive.id}
-                    className="drive-card"
-                    onClick={() => history.push(`/app/drives/detail/${drive.id}`)}
-                  >
-                    <div className="drive-card-header">
-                      <div className="date-badge">
-                        <span className="date-day">{day}</span>
-                        <span className="date-month">{month}</span>
-                      </div>
-                      <div className="drive-header-info">
-                        {status === 'attending' && (
-                          <span className="drive-status-tag confirmed">
-                            <IonIcon icon={checkmarkCircleOutline} /> Attending
-                          </span>
-                        )}
-                        {status === 'declined' && (
-                          <span className="drive-status-tag declined">
-                            <IonIcon icon={closeCircleOutline} /> Declined
-                          </span>
-                        )}
-                        {(status === 'pending' || status === 'not_responded') && (
-                          <span className="drive-status-tag open">Open for Registration</span>
-                        )}
-                        <h3 className="drive-title">{drive.title}</h3>
-                      </div>
-                    </div>
-
-                    <div className="drive-details">
-                      <div className="detail-item">
-                        <IonIcon icon={locationOutline} />
-                        <span>{drive.venue}</span>
-                      </div>
-                      <div className="detail-item">
-                        <IonIcon icon={calendarOutline} />
-                        <span>{formatTimeRange(drive.start_time, drive.end_time)}</span>
-                      </div>
-                    </div>
-
-                    <div className="drive-card-footer">
-                      <span className="slots-left">Goal: {drive.target_units} units</span>
-
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          type="button"
-                          className={`btn ${status === 'declined' ? 'btn-ghost active' : 'btn-ghost'}`}
-                          disabled={respondingId === drive.id}
-                          onClick={(e) => handleRespond(e, drive.id, 'declined')}
-                        >
-                          Declined
-                        </button>
-
-                        <button
-                          type="button"
-                          className={`btn ${status === 'attending' ? 'btn-success' : 'btn-primary'}`}
-                          disabled={respondingId === drive.id}
-                          onClick={(e) => handleRespond(e, drive.id, 'attending')}
-                        >
-                          {respondingId === drive.id ? (
-                            <IonSpinner name="dots" />
-                          ) : status === 'attending' ? (
-                            'Attending'
-                          ) : (
-                            'Confirm'
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </>
           ) : (
-            /* Registered Drives View */
-            <div className="registered-drives-view">
-              {registeredDrives.length === 0 && (
-                <p style={{ textAlign: 'center', color: '#6B7280', padding: '32px 0' }}>
-                  You haven&apos;t confirmed attendance for any upcoming drives yet.
-                </p>
-              )}
+            <>
+              {/* Segmented Control */}
+              <IonSegment
+                value={segment}
+                onIonChange={(e) => setSegment(e.detail.value as 'upcoming' | 'registered')}
+                className="custom-segmented"
+                mode="ios"
+              >
+                <IonSegmentButton value="upcoming">
+                  <IonLabel>All Drives</IonLabel>
+                </IonSegmentButton>
+                <IonSegmentButton value="registered">
+                  <IonLabel>My Registrations</IonLabel>
+                </IonSegmentButton>
+              </IonSegment>
 
-              {registeredDrives.map((drive) => {
-                const { day, month } = formatDateParts(drive.drive_date);
-
-                return (
-                  <div
-                    key={drive.id}
-                    className="drive-card registered-card"
-                    onClick={() => history.push(`/app/drives/detail/${drive.id}`)}
-                  >
-                    <div className="drive-card-header">
-                      <div className="date-badge registered-badge">
-                        <span className="date-day">{day}</span>
-                        <span className="date-month">{month}</span>
-                      </div>
-                      <div className="drive-header-info">
-                        <span className="drive-status-tag confirmed">
-                          <IonIcon icon={checkmarkCircleOutline} /> Attending
-                        </span>
-                        <h3 className="drive-title">{drive.title}</h3>
-                      </div>
-                    </div>
-
-                    <div className="drive-details">
-                      <div className="detail-item">
-                        <IonIcon icon={locationOutline} />
-                        <span>{drive.venue}</span>
-                      </div>
-                    </div>
+              {isLoading ? (
+                <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                  <IonSpinner name="dots" />
+                </div>
+              ) : segment === 'upcoming' ? (
+                <>
+                  {/* Filter Chips */}
+                  <div className="chip-row">
+                    <button
+                      type="button"
+                      className={`chip ${activeChip === 'all' ? 'active' : ''}`}
+                      onClick={() => setActiveChip('all')}
+                    >
+                      All Drives
+                    </button>
+                    <button
+                      type="button"
+                      className={`chip ${activeChip === 'cervantes' ? 'active' : ''}`}
+                      onClick={() => setActiveChip('cervantes')}
+                    >
+                      Poblacion
+                    </button>
+                    <button
+                      type="button"
+                      className={`chip ${activeChip === 'this-month' ? 'active' : ''}`}
+                      onClick={() => setActiveChip('this-month')}
+                    >
+                      This Month
+                    </button>
                   </div>
-                );
-              })}
-            </div>
+
+                  {upcomingDrives.length === 0 && (
+                    <p style={{ textAlign: 'center', color: '#6B7280', padding: '32px 0' }}>
+                      No upcoming drives match this filter right now.
+                    </p>
+                  )}
+
+                  {upcomingDrives.map((drive) => {
+                    const { day, month } = formatDateParts(drive.drive_date);
+                    const status = drive.my_response_status;
+
+                    return (
+                      <div
+                        key={drive.id}
+                        className="drive-card"
+                        onClick={() => history.push(`/app/drives/detail/${drive.id}`)}
+                      >
+                        <div className="drive-card-header">
+                          <div className="date-badge">
+                            <span className="date-day">{day}</span>
+                            <span className="date-month">{month}</span>
+                          </div>
+                          <div className="drive-header-info">
+                            {status === 'attending' && (
+                              <span className="drive-status-tag confirmed">
+                                <IonIcon icon={checkmarkCircleOutline} /> Attending
+                              </span>
+                            )}
+                            {status === 'declined' && (
+                              <span className="drive-status-tag declined">
+                                <IonIcon icon={closeCircleOutline} /> Declined
+                              </span>
+                            )}
+                            {(status === 'pending' || status === 'not_responded') && (
+                              <span className="drive-status-tag open">Open for Registration</span>
+                            )}
+                            <h3 className="drive-title">{drive.title}</h3>
+                          </div>
+                        </div>
+
+                        <div className="drive-details">
+                          <div className="detail-item">
+                            <IonIcon icon={locationOutline} />
+                            <span>{drive.venue}</span>
+                          </div>
+                          <div className="detail-item">
+                            <IonIcon icon={calendarOutline} />
+                            <span>{formatTimeRange(drive.start_time, drive.end_time)}</span>
+                          </div>
+                        </div>
+
+                        <div className="drive-card-footer">
+                          <span className="slots-left">Goal: {drive.target_units} units</span>
+
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              type="button"
+                              className={`btn ${status === 'declined' ? 'btn-ghost active' : 'btn-ghost'}`}
+                              disabled={respondingId === drive.id}
+                              onClick={(e) => handleRespond(e, drive.id, 'declined')}
+                            >
+                              Declined
+                            </button>
+
+                            <button
+                              type="button"
+                              className={`btn ${status === 'attending' ? 'btn-success' : 'btn-primary'}`}
+                              disabled={respondingId === drive.id}
+                              onClick={(e) => handleRespond(e, drive.id, 'attending')}
+                            >
+                              {respondingId === drive.id ? (
+                                <IonSpinner name="dots" />
+                              ) : status === 'attending' ? (
+                                'Attending'
+                              ) : (
+                                'Confirm'
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              ) : (
+                /* Registered Drives View */
+                <div className="registered-drives-view">
+                  {registeredDrives.length === 0 && (
+                    <p style={{ textAlign: 'center', color: '#6B7280', padding: '32px 0' }}>
+                      You haven&apos;t confirmed attendance for any upcoming drives yet.
+                    </p>
+                  )}
+
+                  {registeredDrives.map((drive) => {
+                    const { day, month } = formatDateParts(drive.drive_date);
+
+                    return (
+                      <div
+                        key={drive.id}
+                        className="drive-card registered-card"
+                        onClick={() => history.push(`/app/drives/detail/${drive.id}`)}
+                      >
+                        <div className="drive-card-header">
+                          <div className="date-badge registered-badge">
+                            <span className="date-day">{day}</span>
+                            <span className="date-month">{month}</span>
+                          </div>
+                          <div className="drive-header-info">
+                            <span className="drive-status-tag confirmed">
+                              <IonIcon icon={checkmarkCircleOutline} /> Attending
+                            </span>
+                            <h3 className="drive-title">{drive.title}</h3>
+                          </div>
+                        </div>
+
+                        <div className="drive-details">
+                          <div className="detail-item">
+                            <IonIcon icon={locationOutline} />
+                            <span>{drive.venue}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
 
         </div>

@@ -1,7 +1,7 @@
 // Uses VITE_API_BASE_URL environment variable if set, falling back to local XAMPP backend API
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  'http://127.0.0.1:8000/api';
+  'https://darkgoldenrod-spoonbill-897628.hostingersite.com/api';
 
 // NOTE: If running Laravel via 'php artisan serve', change the fallback above to:
 // 'http://127.0.0.1:8000/api'
@@ -53,6 +53,7 @@ export interface AuthUser {
   email: string;
   phone_number: string | null;
   role: string;
+  status: 'pending' | 'approved' | 'denied';
 }
 
 export interface AuthResponse {
@@ -147,7 +148,7 @@ export interface DashboardDonor {
 
 export interface DashboardStats {
   total_donations_count: number;
-  total_units_donated: number;
+  total_volume_ml: number; // Replaced total_units_donated with total_volume_ml (Option B)
   badge_tier: string;
 }
 
@@ -191,6 +192,7 @@ export interface DonationHistoryEntry {
   id: number;
   donation_date: string;
   units_donated: number;
+  volume_ml: number;
   facility_name: string;
   drive_title: string | null;
 }
@@ -290,7 +292,7 @@ export interface DonorProfile {
 
 export interface ProfileStats {
   total_donations_count: number;
-  total_units_donated: number;
+  total_volume_ml: number; // Replaced total_units_donated with total_volume_ml (Option B)
   badge_tier: string;
 }
 

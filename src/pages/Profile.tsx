@@ -333,7 +333,7 @@ const Profile: React.FC = () => {
               </div>
               <div className="field-row">
                 <span className="field-label">Total volume</span>
-                <span className="field-value">{stats.total_units_donated.toLocaleString()} mL</span>
+                <span className="field-value">{stats.total_volume_ml.toLocaleString()} mL</span>
               </div>
               <div className="field-row">
                 <span className="field-label">Donor level</span>
