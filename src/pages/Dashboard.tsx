@@ -58,7 +58,6 @@ const Dashboard: React.FC = () => {
   const loadDashboard = useCallback(async () => {
     if (!token) return;
 
-    // If user is pending or denied, we can skip fetching data or handle gracefully
     if (user?.status && user.status !== 'approved') {
       setIsLoading(false);
       return;
@@ -128,7 +127,6 @@ const Dashboard: React.FC = () => {
   const nextEligibleDays = donor ? daysUntilNextEligible(donor.last_donation_date) : null;
   const isEligible = donor?.eligibility_status === 'eligible';
 
-  // Check user approval status
   const userStatus = user?.status || 'pending';
 
   return (
@@ -387,7 +385,7 @@ const Dashboard: React.FC = () => {
                       </div>
                       <div className="hist-info">
                         <div className="t">{entry.drive_title ?? entry.facility_name}</div>
-                        <div className="s">{formatDate(entry.donation_date)} · {entry.units_donated * 450} mL</div>
+                        <div className="s">{formatDate(entry.donation_date)} · {entry.volume_ml} mL</div>
                       </div>
                     </div>
                   ))}
