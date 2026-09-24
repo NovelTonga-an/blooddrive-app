@@ -5,9 +5,12 @@ import {
   IonIcon,
   IonSpinner,
   IonToast,
-  IonButton
+  IonButton,
+  IonModal,
+  IonSelect,
+  IonSelectOption
 } from '@ionic/react';
-import { arrowBackOutline, ellipsisHorizontal, locationOutline } from 'ionicons/icons';
+import { arrowBackOutline, ellipsisHorizontal, locationOutline, closeOutline, warningOutline } from 'ionicons/icons';
 import { useHistory, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -31,7 +34,7 @@ function responseStatusLabel(status: NotifiedDonor['response_status']): { label:
     case 'accepted':
       return { label: 'Willing', className: 'willing' };
     case 'arrived':
-      return { label: 'Donated', className: 'willing' };
+      return { label: 'Arrived', className: 'willing' };
     case 'declined':
       return { label: 'Not available', className: 'declined' };
     default:
@@ -50,6 +53,10 @@ const RequestDetail: React.FC = () => {
   const [isFulfilling, setIsFulfilling] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Fulfillment Modal State & Outcomes Mapping
+  const [showFulfillModal, setShowFulfillModal] = useState(false);
+  const [donorOutcomes, setDonorOutcomes] = useState<Record<number, 'donated' | 'no_show'>>({});
+
   const loadRequest = useCallback(async () => {
     if (!token) return;
 
@@ -57,6 +64,15 @@ const RequestDetail: React.FC = () => {
       const response = await myEmergencyRequestApi.show(token, Number(id));
       setRequest(response.request);
       setDonors(response.donors);
+
+      // Initialize default outcomes for willing donors
+      const initialOutcomes: Record<number, 'donated' | 'no_show'> = {};
+      response.donors.forEach((d) => {
+        if (d.response_status === 'accepted' || d.response_status === 'arrived') {
+          initialOutcomes[d.donor_id] = 'donated';
+        }
+      });
+      setDonorOutcomes(initialOutcomes);
     } catch (err) {
       setToastMessage(err instanceof ApiError ? err.message : 'Unable to load this request.');
     } finally {
@@ -68,12 +84,30 @@ const RequestDetail: React.FC = () => {
     loadRequest();
   }, [loadRequest]);
 
-  async function handleMarkFulfilled() {
-    if (!token || !request) return;
-    setIsFulfilling(true);
+  const handleOutcomeChange = (donorId: number, outcome: 'donated' | 'no_show') => {
+    setDonorOutcomes((prev) => ({ ...prev, [donorId]: outcome }));
+  };
 
+  async function handleConfirmFulfill() {
+    if (!token || !request) return;
+
+    const outcomesArray = Object.entries(donorOutcomes).map(([donorId, outcome]) => ({
+      donor_id: Number(donorId),
+      outcome,
+    }));
+
+    const hasDonated = outcomesArray.some((item) => item.outcome === 'donated');
+    if (!hasDonated) {
+      setToastMessage('You must mark at least one donor as "Donated" to fulfill this request.');
+      return;
+    }
+
+    setIsFulfilling(true);
     try {
-      await myEmergencyRequestApi.fulfill(token, request.id);
+      // Pass outcomes array to the updated API service method
+      await myEmergencyRequestApi.fulfill(token, request.id, outcomesArray);
+      setShowFulfillModal(false);
+      setToastMessage('Request marked as fulfilled successfully.');
       await loadRequest();
     } catch (err) {
       setToastMessage(err instanceof ApiError ? err.message : 'Unable to mark this request as fulfilled.');
@@ -113,10 +147,9 @@ const RequestDetail: React.FC = () => {
     );
   }
 
-  const willingCount = donors.filter((d) => d.response_status === 'accepted' || d.response_status === 'arrived').length;
+  const willingDonors = donors.filter((d) => d.response_status === 'accepted' || d.response_status === 'arrived');
   const declinedCount = donors.filter((d) => d.response_status === 'declined').length;
 
-  // Safe Coordinate Check
   const lat = Number(request.latitude);
   const lng = Number(request.longitude);
   const hasCoords = 
@@ -153,7 +186,7 @@ const RequestDetail: React.FC = () => {
             <p className="detail-sub">{request.hospital_venue} · {request.units_needed} units needed</p>
           </div>
 
-          {/* Pinned Location Map (Rendered only if coordinates are valid) */}
+          {/* Pinned Location Map */}
           {hasCoords && (
             <div style={{ marginTop: '16px' }}>
               <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -239,10 +272,10 @@ const RequestDetail: React.FC = () => {
             <IonButton
               expand="block"
               className="submit-btn"
-              disabled={isFulfilling}
-              onClick={handleMarkFulfilled}
+              style={{ marginTop: '16px' }}
+              onClick={() => setShowFulfillModal(true)}
             >
-              {isFulfilling ? <IonSpinner name="dots" /> : 'Mark as fulfilled'}
+              Mark as fulfilled
             </IonButton>
           )}
 
@@ -254,7 +287,7 @@ const RequestDetail: React.FC = () => {
               <div className="ns-label">Notified</div>
             </div>
             <div className="ns-card">
-              <div className="ns-num good">{willingCount}</div>
+              <div className="ns-num good">{willingDonors.length}</div>
               <div className="ns-label">Willing</div>
             </div>
             <div className="ns-card">
@@ -287,6 +320,87 @@ const RequestDetail: React.FC = () => {
           </div>
 
         </div>
+
+        {/* Fulfillment Outcome Verification Modal */}
+        <IonModal isOpen={showFulfillModal} onDidDismiss={() => setShowFulfillModal(false)}>
+          <div style={{ padding: '20px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#1B2430' }}>
+                Verify Donor Outcomes
+              </h3>
+              <IonButton fill="clear" onClick={() => setShowFulfillModal(false)}>
+                <IonIcon slot="icon-only" icon={closeOutline} />
+              </IonButton>
+            </div>
+
+            <p style={{ fontSize: '0.85rem', color: '#666', lineHeight: 1.4, margin: '0 0 16px' }}>
+              Please specify the outcome for each donor who accepted this alert. You must mark at least one donor as <strong>Donated</strong> to complete fulfillment.
+            </p>
+
+            {willingDonors.length > 0 ? (
+              <div style={{ flex: 1, overflowY: 'auto', marginBottom: '16px' }}>
+                {willingDonors.map((donor) => (
+                  <div
+                    key={donor.donor_id}
+                    style={{
+                      background: '#f9f9f9',
+                      borderRadius: '12px',
+                      padding: '12px',
+                      marginBottom: '10px',
+                      border: '1px solid #e5e7eb',
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#1B2430', marginBottom: '4px' }}>
+                      {donor.name} ({donor.blood_type ?? '—'})
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#1E7A4C', fontWeight: 600, marginBottom: '8px' }}>
+                      Status: Willing to Donate
+                    </div>
+                    <IonSelect
+                      mode="md"
+                      fill="outline"
+                      value={donorOutcomes[donor.donor_id] ?? 'donated'}
+                      onIonChange={(e) => handleOutcomeChange(donor.donor_id, e.detail.value)}
+                      style={{ background: '#fff', borderRadius: '8px', fontSize: '0.85rem' }}
+                    >
+                      <IonSelectOption value="donated">Donated</IonSelectOption>
+                      <IonSelectOption value="no_show">No Show</IonSelectOption>
+                    </IonSelect>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ background: '#FBF0DD', border: '1px solid #E0A63E', borderRadius: '12px', padding: '16px', textAlign: 'center', marginBottom: '16px' }}>
+                <IonIcon icon={warningOutline} style={{ fontSize: '2rem', color: '#8A5B12', marginBottom: '6px' }} />
+                <p style={{ color: '#8A5B12', fontSize: '0.88rem', fontWeight: 600, margin: 0 }}>
+                  No donors have accepted or arrived for this request yet. At least one donor must accept before fulfilling.
+                </p>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <IonButton
+                expand="block"
+                color="medium"
+                style={{ flex: 1 }}
+                onClick={() => setShowFulfillModal(false)}
+              >
+                Cancel
+              </IonButton>
+              {willingDonors.length > 0 && (
+                <IonButton
+                  expand="block"
+                  className="submit-btn"
+                  style={{ flex: 1, margin: 0 }}
+                  disabled={isFulfilling}
+                  onClick={handleConfirmFulfill}
+                >
+                  {isFulfilling ? <IonSpinner name="dots" /> : 'Confirm & Fulfill'}
+                </IonButton>
+              )}
+            </div>
+          </div>
+        </IonModal>
 
         <IonToast
           isOpen={!!toastMessage}

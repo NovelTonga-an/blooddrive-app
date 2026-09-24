@@ -1,10 +1,7 @@
 // Uses VITE_API_BASE_URL environment variable if set, falling back to local XAMPP backend API
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  'https://darkgoldenrod-spoonbill-897628.hostingersite.com/api';
-
-// NOTE: If running Laravel via 'php artisan serve', change the fallback above to:
-// 'http://127.0.0.1:8000/api'
+  'http://127.0.0.1:8000/api';
 
 export class ApiError extends Error {
   status: number;
@@ -148,7 +145,7 @@ export interface DashboardDonor {
 
 export interface DashboardStats {
   total_donations_count: number;
-  total_volume_ml: number; // Replaced total_units_donated with total_volume_ml (Option B)
+  total_volume_ml: number;
   badge_tier: string;
 }
 
@@ -191,7 +188,6 @@ export const emergencyRequestApi = {
 export interface DonationHistoryEntry {
   id: number;
   donation_date: string;
-  units_donated: number;
   volume_ml: number;
   facility_name: string;
   drive_title: string | null;
@@ -270,10 +266,11 @@ export const myEmergencyRequestApi = {
     return data;
   },
 
-  fulfill: (token: string, requestId: number) =>
+  fulfill: (token: string, requestId: number, outcomes: { donor_id: number; outcome: string }[]) =>
     apiRequest<{ message: string }>(`/my-emergency-requests/${requestId}/fulfill`, {
       method: 'PATCH',
       token,
+      body: JSON.stringify({ outcomes }),
     }),
 };
 
@@ -292,7 +289,7 @@ export interface DonorProfile {
 
 export interface ProfileStats {
   total_donations_count: number;
-  total_volume_ml: number; // Replaced total_units_donated with total_volume_ml (Option B)
+  total_volume_ml: number;
   badge_tier: string;
 }
 
