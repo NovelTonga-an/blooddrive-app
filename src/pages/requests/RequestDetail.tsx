@@ -6,11 +6,9 @@ import {
   IonSpinner,
   IonToast,
   IonButton,
-  IonModal,
-  IonSelect,
-  IonSelectOption
+  IonModal
 } from '@ionic/react';
-import { arrowBackOutline, ellipsisHorizontal, locationOutline, closeOutline, warningOutline } from 'ionicons/icons';
+import { arrowBackOutline, ellipsisHorizontal, locationOutline, closeOutline, warningOutline, callOutline, checkmarkCircleOutline, closeCircleOutline } from 'ionicons/icons';
 import { useHistory, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -32,9 +30,8 @@ const customMarkerIcon = L.icon({
 function responseStatusLabel(status: NotifiedDonor['response_status']): { label: string; className: string } {
   switch (status) {
     case 'accepted':
-      return { label: 'Willing', className: 'willing' };
     case 'arrived':
-      return { label: 'Arrived', className: 'willing' };
+      return { label: 'Willing', className: 'willing' };
     case 'declined':
       return { label: 'Not available', className: 'declined' };
     default:
@@ -53,7 +50,6 @@ const RequestDetail: React.FC = () => {
   const [isFulfilling, setIsFulfilling] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Fulfillment Modal State & Outcomes Mapping
   const [showFulfillModal, setShowFulfillModal] = useState(false);
   const [donorOutcomes, setDonorOutcomes] = useState<Record<number, 'donated' | 'no_show'>>({});
 
@@ -65,11 +61,10 @@ const RequestDetail: React.FC = () => {
       setRequest(response.request);
       setDonors(response.donors);
 
-      // Initialize default outcomes for willing donors
       const initialOutcomes: Record<number, 'donated' | 'no_show'> = {};
       response.donors.forEach((d) => {
         if (d.response_status === 'accepted' || d.response_status === 'arrived') {
-          initialOutcomes[d.donor_id] = 'donated';
+          initialOutcomes[d.donor_id] = d.outcome ?? 'donated';
         }
       });
       setDonorOutcomes(initialOutcomes);
@@ -96,21 +91,21 @@ const RequestDetail: React.FC = () => {
       outcome,
     }));
 
-    const hasDonated = outcomesArray.some((item) => item.outcome === 'donated');
-    if (!hasDonated) {
-      setToastMessage('You must mark at least one donor as "Donated" to fulfill this request.');
+    const donatedCount = outcomesArray.filter((item) => item.outcome === 'donated').length;
+    // Units stated must match or exceed the willing donors marked as donated
+    if (donatedCount < request.units_needed) {
+      setToastMessage(`You must mark at least ${request.units_needed} donor(s) as "Donated" to match or exceed the units requested (${donatedCount}/${request.units_needed}).`);
       return;
     }
 
     setIsFulfilling(true);
     try {
-      // Pass outcomes array to the updated API service method
       await myEmergencyRequestApi.fulfill(token, request.id, outcomesArray);
       setShowFulfillModal(false);
-      setToastMessage('Request marked as fulfilled successfully.');
+      setToastMessage('Request updated and marked as fulfilled successfully.');
       await loadRequest();
     } catch (err) {
-      setToastMessage(err instanceof ApiError ? err.message : 'Unable to mark this request as fulfilled.');
+      setToastMessage(err instanceof ApiError ? err.message : 'Unable to fulfill this request.');
     } finally {
       setIsFulfilling(false);
     }
@@ -149,21 +144,17 @@ const RequestDetail: React.FC = () => {
 
   const willingDonors = donors.filter((d) => d.response_status === 'accepted' || d.response_status === 'arrived');
   const declinedCount = donors.filter((d) => d.response_status === 'declined').length;
+  const currentDonatedCount = Object.values(donorOutcomes).filter(o => o === 'donated').length;
 
   const lat = Number(request.latitude);
   const lng = Number(request.longitude);
-  const hasCoords = 
-    request.latitude !== null && 
-    request.longitude !== null && 
-    !isNaN(lat) && 
-    !isNaN(lng);
+  const hasCoords = request.latitude !== null && request.longitude !== null && !isNaN(lat) && !isNaN(lng);
 
   return (
     <IonPage>
       <IonContent fullscreen className="requests-content">
         <div className="requests-wrapper">
 
-          {/* Header */}
           <div className="topbar">
             <div className="icon-btn" onClick={() => history.goBack()}>
               <IonIcon icon={arrowBackOutline} />
@@ -174,7 +165,6 @@ const RequestDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Hero Header */}
           <div className="detail-hero">
             <p className="detail-status">
               {request.status === 'pending' && 'Pending verification'}
@@ -186,7 +176,6 @@ const RequestDetail: React.FC = () => {
             <p className="detail-sub">{request.hospital_venue} · {request.units_needed} units needed</p>
           </div>
 
-          {/* Pinned Location Map */}
           {hasCoords && (
             <div style={{ marginTop: '16px' }}>
               <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -209,7 +198,6 @@ const RequestDetail: React.FC = () => {
             </div>
           )}
 
-          {/* Timeline Status */}
           <h3 className="section-title" style={{ marginTop: '18px' }}>Status timeline</h3>
           <div className="timeline">
             <div className="tl-step">
@@ -262,7 +250,7 @@ const RequestDetail: React.FC = () => {
                 <p className="tl-time">
                   {request.status === 'fulfilled'
                     ? 'This request has been fulfilled'
-                    : `${request.accepted_count} of ${request.units_needed} units confirmed`}
+                    : `${willingDonors.filter(d => donorOutcomes[d.donor_id] === 'donated').length} of ${request.units_needed} units confirmed`}
                 </p>
               </div>
             </div>
@@ -275,11 +263,10 @@ const RequestDetail: React.FC = () => {
               style={{ marginTop: '16px' }}
               onClick={() => setShowFulfillModal(true)}
             >
-              Mark as fulfilled
+              Update Willing Donors
             </IonButton>
           )}
 
-          {/* Notified Donors List */}
           <h3 className="section-title" style={{ marginTop: '18px' }}>Donors notified</h3>
           <div className="notified-summary">
             <div className="ns-card">
@@ -300,18 +287,26 @@ const RequestDetail: React.FC = () => {
             <p className="status-meta" style={{ padding: '12px 4px' }}>No donors have been notified yet.</p>
           )}
 
-          <div className="donor-card-container">
+          <div className="donor-card-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
             {donors.map((donor) => {
               const status = responseStatusLabel(donor.response_status);
 
               return (
-                <div key={donor.donor_id} className="donor-row">
-                  <div className="donor-avatar">
-                    {donor.name.split(' ').map((part) => part[0]).slice(0, 2).join('')}
-                  </div>
-                  <div className="donor-info">
-                    <div className="donor-name">{donor.name}</div>
-                    <div className="donor-meta">{donor.blood_type ?? '—'}</div>
+                <div key={donor.donor_id} className="donor-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className="donor-avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#B3122B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem' }}>
+                      {donor.name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()}
+                    </div>
+                    <div className="donor-info">
+                      <div className="donor-name" style={{ fontWeight: 600, color: '#1B2430' }}>{donor.name}</div>
+                      <div className="donor-meta" style={{ fontSize: '0.8rem', color: '#666', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                        <span style={{ fontWeight: 700, color: '#B3122B' }}>{donor.blood_type ?? '—'}</span>
+                        <span>·</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                          <IonIcon icon={callOutline} style={{ fontSize: '11px' }} /> {donor.phone_number ?? 'No contact'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   <span className={`donor-status ${status.className}`}>{status.label}</span>
                 </div>
@@ -321,59 +316,115 @@ const RequestDetail: React.FC = () => {
 
         </div>
 
-        {/* Fulfillment Outcome Verification Modal */}
+        {/* Improved Verify Donor Outcomes Modal */}
         <IonModal isOpen={showFulfillModal} onDidDismiss={() => setShowFulfillModal(false)}>
-          <div style={{ padding: '20px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '20px', height: '100%', display: 'flex', flexDirection: 'column', background: '#F8F9FA' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#1B2430' }}>
-                Verify Donor Outcomes
-              </h3>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#1B2430' }}>
+                  Verify Donor Outcomes
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: '#B3122B', fontWeight: 600 }}>
+                  Units Needed: {request.units_needed} · Marked Donated: {currentDonatedCount}
+                </span>
+              </div>
               <IonButton fill="clear" onClick={() => setShowFulfillModal(false)}>
                 <IonIcon slot="icon-only" icon={closeOutline} />
               </IonButton>
             </div>
 
-            <p style={{ fontSize: '0.85rem', color: '#666', lineHeight: 1.4, margin: '0 0 16px' }}>
-              Please specify the outcome for each donor who accepted this alert. You must mark at least one donor as <strong>Donated</strong> to complete fulfillment.
+            <p style={{ fontSize: '0.85rem', color: '#555', lineHeight: 1.4, margin: '0 0 16px' }}>
+              Select <strong>Donated</strong> or <strong>No Show</strong> for each willing donor. You must mark at least <strong>{request.units_needed}</strong> donor(s) as Donated before fulfilling.
             </p>
 
             {willingDonors.length > 0 ? (
-              <div style={{ flex: 1, overflowY: 'auto', marginBottom: '16px' }}>
-                {willingDonors.map((donor) => (
-                  <div
-                    key={donor.donor_id}
-                    style={{
-                      background: '#f9f9f9',
-                      borderRadius: '12px',
-                      padding: '12px',
-                      marginBottom: '10px',
-                      border: '1px solid #e5e7eb',
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#1B2430', marginBottom: '4px' }}>
-                      {donor.name} ({donor.blood_type ?? '—'})
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#1E7A4C', fontWeight: 600, marginBottom: '8px' }}>
-                      Status: Willing to Donate
-                    </div>
-                    <IonSelect
-                      mode="md"
-                      fill="outline"
-                      value={donorOutcomes[donor.donor_id] ?? 'donated'}
-                      onIonChange={(e) => handleOutcomeChange(donor.donor_id, e.detail.value)}
-                      style={{ background: '#fff', borderRadius: '8px', fontSize: '0.85rem' }}
+              <div style={{ flex: 1, overflowY: 'auto', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {willingDonors.map((donor) => {
+                  const currentOutcome = donorOutcomes[donor.donor_id] ?? 'donated';
+
+                  return (
+                    <div
+                      key={donor.donor_id}
+                      style={{
+                        background: '#fff',
+                        borderRadius: '12px',
+                        padding: '14px',
+                        border: '1px solid #e5e7eb',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                      }}
                     >
-                      <IonSelectOption value="donated">Donated</IonSelectOption>
-                      <IonSelectOption value="no_show">No Show</IonSelectOption>
-                    </IonSelect>
-                  </div>
-                ))}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#1B2430' }}>
+                            {donor.name} <span style={{ color: '#B3122B', fontWeight: 700 }}>({donor.blood_type ?? '—'})</span>
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: '#666', marginTop: '2px' }}>
+                            Contact: {donor.phone_number ?? 'No contact'}
+                          </div>
+                        </div>
+                        <span style={{ background: '#E8F5EE', color: '#1E7A4C', fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '999px' }}>
+                          Willing
+                        </span>
+                      </div>
+
+                      {/* Improved UI/UX Toggle Buttons for Donated / No Show */}
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleOutcomeChange(donor.donor_id, 'donated')}
+                          style={{
+                            flex: 1,
+                            padding: '10px',
+                            borderRadius: '8px',
+                            border: currentOutcome === 'donated' ? '2px solid #1E7A4C' : '1px solid #d1d5db',
+                            background: currentOutcome === 'donated' ? '#E8F5EE' : '#f9fafb',
+                            color: currentOutcome === 'donated' ? '#1E7A4C' : '#374151',
+                            fontWeight: 700,
+                            fontSize: '0.85rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          <IonIcon icon={checkmarkCircleOutline} style={{ fontSize: '16px' }} />
+                          Donated
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOutcomeChange(donor.donor_id, 'no_show')}
+                          style={{
+                            flex: 1,
+                            padding: '10px',
+                            borderRadius: '8px',
+                            border: currentOutcome === 'no_show' ? '2px solid #B3122B' : '1px solid #d1d5db',
+                            background: currentOutcome === 'no_show' ? '#FCEEEE' : '#f9fafb',
+                            color: currentOutcome === 'no_show' ? '#B3122B' : '#374151',
+                            fontWeight: 700,
+                            fontSize: '0.85rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          <IonIcon icon={closeCircleOutline} style={{ fontSize: '16px' }} />
+                          No Show
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div style={{ background: '#FBF0DD', border: '1px solid #E0A63E', borderRadius: '12px', padding: '16px', textAlign: 'center', marginBottom: '16px' }}>
                 <IonIcon icon={warningOutline} style={{ fontSize: '2rem', color: '#8A5B12', marginBottom: '6px' }} />
                 <p style={{ color: '#8A5B12', fontSize: '0.88rem', fontWeight: 600, margin: 0 }}>
-                  No donors have accepted or arrived for this request yet. At least one donor must accept before fulfilling.
+                  No donors have accepted or arrived for this request yet. At least {request.units_needed} donor(s) must accept before fulfilling.
                 </p>
               </div>
             )}

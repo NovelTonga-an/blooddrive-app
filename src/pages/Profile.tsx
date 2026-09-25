@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   IonContent,
@@ -14,27 +14,20 @@ import {
   IonHeader,
   IonToolbar,
   IonTitle,
-  IonButtons
+  IonButtons,
+  IonSelect,
+  IonSelectOption
 } from '@ionic/react';
 import {
-  cogOutline,
   chevronForward,
   lockClosedOutline,
-  shieldCheckmarkOutline,
-  downloadOutline,
   trashOutline,
   closeOutline,
   logOutOutline
 } from 'ionicons/icons';
 import { useAuth } from '../context/AuthContext';
-import { profileApi, ApiError, DonorProfile, ProfileStats } from '../services/api';
+import { profileApi, lookupApi, ApiError, DonorProfile, ProfileStats, LookupOption } from '../services/api';
 import './Profile.css';
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-}
 
 function formatBirthdate(dateStr: string | null): string {
   if (!dateStr) return '—';
@@ -61,21 +54,12 @@ function badgeEmoji(tier: string): string {
   }
 }
 
-function eligibilityLabel(status: DonorProfile['eligibility_status']): { text: string; className: string } {
-  switch (status) {
-    case 'eligible':
-      return { text: '✓ Eligible to donate', className: 'badge verified' };
-    case 'deferred':
-      return { text: '⚠ Deferred', className: 'badge deferred' };
-    default:
-      return { text: 'Profile incomplete', className: 'badge incomplete' };
-  }
-}
-
-function nextEligibleLabel(profile: DonorProfile): string {
-  if (profile.eligibility_status === 'eligible') return 'Eligible now';
-  if (!profile.next_eligible_date) return 'Permanently deferred';
-  return formatDate(profile.next_eligible_date);
+function daysUntilNextEligible(lastDonationDate: string | null): number | null {
+  if (!lastDonationDate) return null;
+  const nextEligible = new Date(lastDonationDate);
+  nextEligible.setDate(nextEligible.getDate() + 90);
+  const diffDays = Math.ceil((nextEligible.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  return Math.max(0, diffDays);
 }
 
 const Profile: React.FC = () => {
@@ -90,14 +74,21 @@ const Profile: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastColor, setToastColor] = useState<'success' | 'danger'>('success');
 
+  // Edit Personal Info Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editBarangayId, setEditBarangayId] = useState<number | null>(null);
+  const [barangays, setBarangays] = useState<LookupOption[]>([]);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-
-  const [exporting, setExporting] = useState(false);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
@@ -107,25 +98,58 @@ const Profile: React.FC = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     setLoadError(null);
     try {
-      const res = await profileApi.get(token);
+      const [res, barangaysRes] = await Promise.all([
+        profileApi.get(token),
+        lookupApi.barangays(),
+      ]);
       setProfile(res.profile);
       setStats(res.stats);
+      setBarangays(barangaysRes);
     } catch (err) {
       setLoadError(err instanceof ApiError ? err.message : 'Failed to load your profile.');
     } finally {
       setLoading(false);
     }
-  }
+  }, [token]);
 
   useEffect(() => {
     loadProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [loadProfile]);
+
+  function openEditModal() {
+    if (!profile) return;
+    setEditName(profile.name);
+    setEditPhone(profile.phone_number ?? '');
+    setEditError(null);
+    setShowEditModal(true);
+  }
+
+  async function handleSaveProfile() {
+    if (!token) return;
+    setEditError(null);
+    setSavingProfile(true);
+
+    try {
+      await profileApi.update(token, {
+        name: editName,
+        phone_number: editPhone || null,
+        barangay_id: editBarangayId,
+      });
+      setShowEditModal(false);
+      setToastColor('success');
+      setToastMessage('Personal info updated successfully.');
+      await loadProfile();
+    } catch (err) {
+      setEditError(err instanceof ApiError ? err.message : 'Failed to update personal info.');
+    } finally {
+      setSavingProfile(false);
+    }
+  }
 
   async function handleChangePassword() {
     if (!token) return;
@@ -153,30 +177,6 @@ const Profile: React.FC = () => {
       setPasswordError(err instanceof ApiError ? err.message : 'Failed to update password.');
     } finally {
       setPasswordSaving(false);
-    }
-  }
-
-  async function handleExportData() {
-    if (!token) return;
-    setExporting(true);
-    try {
-      const data = await profileApi.export(token);
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `my-donor-data-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      setToastColor('success');
-      setToastMessage('Your data export has downloaded.');
-    } catch (err) {
-      setToastColor('danger');
-      setToastMessage(err instanceof ApiError ? err.message : 'Failed to export your data.');
-    } finally {
-      setExporting(false);
     }
   }
 
@@ -223,26 +223,24 @@ const Profile: React.FC = () => {
         <IonContent fullscreen className="profile-content">
           <div style={{ display: 'flex', height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '24px' }}>
             <p>{loadError ?? 'Something went wrong loading your profile.'}</p>
-            <IonButton onClick={loadProfile}>Try again</IonButton>
+            <IonButton onClick={() => loadProfile()}>Try again</IonButton>
           </div>
         </IonContent>
       </IonPage>
     );
   }
 
-  const eligibility = eligibilityLabel(profile.eligibility_status);
+  const nextEligibleDays = daysUntilNextEligible(profile.last_donation_date);
+  const isEligible = profile.eligibility_status === 'eligible';
 
   return (
     <IonPage>
       <IonContent fullscreen className="profile-content">
         <div className="profile-wrapper">
 
-          {/* Header Bar */}
+          {/* Header Bar (Gear icon removed) */}
           <div className="topbar">
             <h1>My Profile</h1>
-            <div className="icon-btn">
-              <IonIcon icon={cogOutline} />
-            </div>
           </div>
 
           {/* Identity Card */}
@@ -251,16 +249,9 @@ const Profile: React.FC = () => {
             <h2 className="id-name">{profile.name}</h2>
             <p className="id-sub">Donor</p>
             <div className="id-badges">
-              <span className={eligibility.className}>{eligibility.text}</span>
-            </div>
-          </div>
-
-          {/* Eligibility Strip */}
-          <div className="elig-strip">
-            <span className="elig-dot"></span>
-            <div className="elig-text">
-              <div className="t">{eligibility.text.replace(/^[✓⚠]\s*/, '')}</div>
-              <div className="s">Calculated from last donation · not editable</div>
+              <span className="badge verified">
+                {isEligible ? 'Eligible to donate now' : `Eligible to donate again in ${nextEligibleDays ?? 0} day(s)`}
+              </span>
             </div>
           </div>
 
@@ -268,7 +259,7 @@ const Profile: React.FC = () => {
           <div className="profile-section">
             <div className="section-head">
               <span className="section-title">Personal info</span>
-              <a className="edit-link" href="#edit-personal">Edit</a>
+              <a className="edit-link" onClick={openEditModal} style={{ cursor: 'pointer' }}>Edit</a>
             </div>
             <div className="field-card">
               <div className="field-row">
@@ -298,11 +289,10 @@ const Profile: React.FC = () => {
             </div>
           </div>
 
-          {/* Blood & Medical Profile */}
+          {/* Blood & Medical Profile (Edit button removed) */}
           <div className="profile-section">
             <div className="section-head">
               <span className="section-title">Blood & medical profile</span>
-              <a className="edit-link" href="#edit-medical">Edit</a>
             </div>
             <div className="field-card">
               <div className="field-row">
@@ -311,11 +301,11 @@ const Profile: React.FC = () => {
               </div>
               <div className="field-row">
                 <span className="field-label">Last donation</span>
-                <span className="field-value">{formatDate(profile.last_donation_date)}</span>
+                <span className="field-value">{profile.last_donation_date ? new Date(profile.last_donation_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
               </div>
               <div className="field-row">
                 <span className="field-label">Next eligible date</span>
-                <span className="field-value muted">{nextEligibleLabel(profile)}</span>
+                <span className="field-value muted">{profile.next_eligible_date ? new Date(profile.next_eligible_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Eligible now'}</span>
               </div>
             </div>
           </div>
@@ -324,7 +314,7 @@ const Profile: React.FC = () => {
           <div className="profile-section">
             <div className="section-head">
               <span className="section-title">Donation record</span>
-              <a className="edit-link" href="#donation-history">View all</a>
+              <a className="edit-link" onClick={() => history.push('/app/home')} style={{ cursor: 'pointer' }}>View all</a>
             </div>
             <div className="field-card">
               <div className="field-row">
@@ -332,8 +322,8 @@ const Profile: React.FC = () => {
                 <span className="field-value">{stats.total_donations_count}</span>
               </div>
               <div className="field-row">
-                <span className="field-label">Total volume</span>
-                <span className="field-value">{stats.total_volume_ml.toLocaleString()} mL</span>
+                <span className="field-label">Successful donations (450 mL)</span>
+                <span className="field-value">{stats.successful_donations_count}</span>
               </div>
               <div className="field-row">
                 <span className="field-label">Donor level</span>
@@ -342,7 +332,7 @@ const Profile: React.FC = () => {
             </div>
           </div>
 
-          {/* Account & Privacy */}
+          {/* Account & Privacy (Data privacy & export buttons removed) */}
           <div className="profile-section">
             <div className="section-head">
               <span className="section-title">Account & privacy</span>
@@ -352,16 +342,6 @@ const Profile: React.FC = () => {
                 <IonIcon icon={lockClosedOutline} />
                 <span>Change password</span>
                 <IonIcon icon={chevronForward} className="chev" />
-              </div>
-              <div className="danger-row">
-                <IonIcon icon={shieldCheckmarkOutline} />
-                <span>Data privacy & consent</span>
-                <IonIcon icon={chevronForward} className="chev" />
-              </div>
-              <div className="danger-row" onClick={handleExportData}>
-                <IonIcon icon={downloadOutline} />
-                <span>{exporting ? 'Exporting…' : 'Export my data'}</span>
-                {exporting ? <IonSpinner name="dots" /> : <IonIcon icon={chevronForward} className="chev" />}
               </div>
               <div className="danger-row delete-row" onClick={() => setShowDeleteModal(true)}>
                 <IonIcon icon={trashOutline} />
@@ -387,6 +367,57 @@ const Profile: React.FC = () => {
 
         </div>
       </IonContent>
+
+      {/* Edit Personal Info Modal */}
+      <IonModal isOpen={showEditModal} onDidDismiss={() => setShowEditModal(false)}>
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>Edit personal info</IonTitle>
+            <IonButtons slot="end">
+              <IonButton onClick={() => setShowEditModal(false)}>
+                <IonIcon icon={closeOutline} />
+              </IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="ion-padding">
+          <IonItem>
+            <IonLabel position="stacked">Full name</IonLabel>
+            <IonInput
+              value={editName}
+              onIonInput={(e) => setEditName(e.detail.value ?? '')}
+            />
+          </IonItem>
+          <IonItem>
+            <IonLabel position="stacked">Mobile number</IonLabel>
+            <IonInput
+              value={editPhone}
+              onIonInput={(e) => setEditPhone(e.detail.value ?? '')}
+            />
+          </IonItem>
+          <IonItem>
+            <IonLabel position="stacked">Barangay</IonLabel>
+            <IonSelect
+              value={editBarangayId}
+              placeholder="Select barangay"
+              onIonChange={(e) => setEditBarangayId(e.detail.value)}
+            >
+              {barangays.map((b) => (
+                <IonSelectOption key={b.id} value={b.id}>{b.name}</IonSelectOption>
+              ))}
+            </IonSelect>
+          </IonItem>
+          {editError && <p style={{ color: 'var(--ion-color-danger, #eb445a)', marginTop: '12px' }}>{editError}</p>}
+          <IonButton
+            expand="block"
+            style={{ marginTop: '20px' }}
+            disabled={savingProfile || !editName}
+            onClick={handleSaveProfile}
+          >
+            {savingProfile ? <IonSpinner name="dots" /> : 'Save changes'}
+          </IonButton>
+        </IonContent>
+      </IonModal>
 
       {/* Change Password Modal */}
       <IonModal isOpen={showPasswordModal} onDidDismiss={() => setShowPasswordModal(false)}>

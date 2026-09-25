@@ -10,16 +10,15 @@ import {
   IonText,
   IonSpinner
 } from '@ionic/react';
-import { arrowBackOutline, informationCircleOutline, cameraOutline, locationOutline, navigateOutline } from 'ionicons/icons';
+import { arrowBackOutline, informationCircleOutline, cameraOutline, navigateOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { Geolocation } from '@capacitor/geolocation';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { useAuth } from '../../context/AuthContext';
-import { ApiError, lookupApi, LookupOption, myEmergencyRequestApi } from '../../services/api';
+import { lookupApi, LookupOption, myEmergencyRequestApi, ApiError } from '../../services/api';
 import './Requests.css';
 
-// Fix for Leaflet default marker icon path issue in Webpack/Vite
 import markerIconPng from 'leaflet/dist/images/marker-icon.png';
 import markerShadowPng from 'leaflet/dist/images/marker-shadow.png';
 
@@ -30,12 +29,11 @@ const customMarkerIcon = L.icon({
   iconAnchor: [12, 41]
 });
 
-// Helper Component to handle user map clicks and drag events
 const LocationPickerMarker: React.FC<{
   position: [number, number];
   setPosition: (pos: [number, number]) => void;
 }> = ({ position, setPosition }) => {
-  const map = useMapEvents({
+  useMapEvents({
     click(e) {
       setPosition([e.latlng.lat, e.latlng.lng]);
     },
@@ -59,7 +57,7 @@ const LocationPickerMarker: React.FC<{
 
 const CreateRequest: React.FC = () => {
   const history = useHistory();
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [bloodTypes, setBloodTypes] = useState<LookupOption[]>([]);
@@ -70,12 +68,9 @@ const CreateRequest: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Map Pinned Coordinates State (Default: Cervantes MHO)
   const [mapCenter, setMapCenter] = useState<[number, number]>([16.9850, 120.7350]);
   const [pinnedCoords, setPinnedCoords] = useState<[number, number]>([16.9850, 120.7350]);
   const [isLocating, setIsLocating] = useState(false);
-
-  const isDonor = user?.role === 'donor';
 
   const [formData, setFormData] = useState({
     patientName: '',
@@ -87,7 +82,6 @@ const CreateRequest: React.FC = () => {
     contactPhone: ''
   });
 
-  // Fetch donor's current GPS location and center map on it
   const getCurrentLocation = async () => {
     setIsLocating(true);
     setError(null);
@@ -139,8 +133,43 @@ const CreateRequest: React.FC = () => {
     e.preventDefault();
     if (!token) return;
 
-    if (isDonor && !selectedFile) {
-      setError('Hospital Blood Request Form photo is required for donor submissions.');
+    // Client-side validations matching backend constraints
+    if (!formData.patientName.trim()) {
+      setError("Patient's full name is required.");
+      return;
+    }
+    if (!formData.bloodTypeId) {
+      setError('Please select a blood type.');
+      return;
+    }
+    if (!formData.hospital.trim()) {
+      setError('Hospital / venue name is required.');
+      return;
+    }
+
+    const unitsNum = parseInt(formData.units, 10);
+    if (isNaN(unitsNum) || unitsNum < 1 || unitsNum > 20) {
+      setError('Units needed must be between 1 and 20.');
+      return;
+    }
+
+    if (!formData.contactPerson.trim()) {
+      setError('Contact person is required.');
+      return;
+    }
+    if (formData.contactPerson.length > 50) {
+      setError('Contact person name cannot exceed 50 characters.');
+      return;
+    }
+
+    const phoneRegex = /^09\d{9}$/;
+    if (!phoneRegex.test(formData.contactPhone)) {
+      setError('Contact number must start with 09 and be exactly 11 digits (e.g. 09170000000).');
+      return;
+    }
+
+    if (!selectedFile) {
+      setError('Hospital Blood Request Form photo is required.');
       return;
     }
 
@@ -157,17 +186,12 @@ const CreateRequest: React.FC = () => {
       }
 
       data.append('hospital_venue', formData.hospital);
-      data.append('units_needed', String(formData.units));
+      data.append('units_needed', String(unitsNum));
       data.append('contact_person', formData.contactPerson);
       data.append('contact_number', formData.contactPhone);
-
-      // Pass pinned map coordinates for backend Haversine calculations
       data.append('latitude', String(pinnedCoords[0]));
       data.append('longitude', String(pinnedCoords[1]));
-
-      if (selectedFile) {
-        data.append('request_form_image', selectedFile);
-      }
+      data.append('request_form_image', selectedFile);
 
       const response = await myEmergencyRequestApi.create(token, data);
       history.replace(`/app/requests/detail/${response.request_id}`);
@@ -197,7 +221,7 @@ const CreateRequest: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="request-form">
             <div className="form-group">
-              <label className="form-label">Patient's full name</label>
+              <label className="form-label">Patient's full name *</label>
               <IonInput
                 mode="md"
                 fill="outline"
@@ -209,7 +233,7 @@ const CreateRequest: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Blood type needed</label>
+              <label className="form-label">Blood type needed *</label>
               <IonSelect
                 mode="md"
                 fill="outline"
@@ -241,7 +265,7 @@ const CreateRequest: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Hospital / venue name</label>
+              <label className="form-label">Hospital / venue name *</label>
               <IonInput
                 mode="md"
                 fill="outline"
@@ -252,7 +276,6 @@ const CreateRequest: React.FC = () => {
               />
             </div>
 
-            {/* Interactive Location Pinning Map */}
             <div className="form-group">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <label className="form-label" style={{ margin: 0 }}>Pin Extraction Location on Map *</label>
@@ -280,10 +303,12 @@ const CreateRequest: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Units needed</label>
+              <label className="form-label">Units needed (1–20) *</label>
               <IonInput
                 mode="md"
                 type="number"
+                min="1"
+                max="20"
                 fill="outline"
                 placeholder="e.g. 3"
                 value={formData.units}
@@ -293,9 +318,10 @@ const CreateRequest: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Contact person</label>
+              <label className="form-label">Contact person (max 50 chars) *</label>
               <IonInput
                 mode="md"
+                maxlength={50}
                 fill="outline"
                 placeholder="e.g. Ana Santos"
                 value={formData.contactPerson}
@@ -305,22 +331,22 @@ const CreateRequest: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Contact number</label>
+              <label className="form-label">Contact number (e.g. 09170000000) *</label>
               <IonInput
                 mode="md"
                 type="tel"
+                maxlength={11}
                 fill="outline"
-                placeholder="e.g. 09170000000"
+                placeholder="09XXXXXXXXX"
                 value={formData.contactPhone}
                 onIonInput={(e) => handleChange('contactPhone', e.detail.value!)}
                 className="custom-form-input"
               />
             </div>
 
-            {/* Hospital Request Form Photo Picker */}
             <div className="form-group">
               <label className="form-label">
-                Hospital Request Form Photo {isDonor ? '(Required)' : '(Optional)'}
+                Hospital Request Form Photo (Required) *
               </label>
               <input
                 type="file"
@@ -355,7 +381,7 @@ const CreateRequest: React.FC = () => {
                   <div>
                     <IonIcon icon={cameraOutline} style={{ fontSize: '36px', color: '#B3122B' }} />
                     <p style={{ margin: '6px 0 2px', fontSize: '0.9rem', fontWeight: 600, color: '#333' }}>
-                      Upload Hospital Request Form
+                      Upload Hospital Request Form *
                     </p>
                     <span style={{ fontSize: '0.75rem', color: '#888' }}>PNG, JPG, JPEG up to 5MB</span>
                   </div>

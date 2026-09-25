@@ -209,13 +209,18 @@ const Dashboard: React.FC = () => {
                       {donor?.eligibility_status === 'deferred' && 'Deferred'}
                       {donor?.eligibility_status === 'incomplete' && 'Profile incomplete'}
                     </div>
-                    <p className="hero-title">
-                      {isEligible ? 'You can save a life today' : 'Thanks for being a donor'}
+                    <p className="hero-title" style={{ fontSize: '1.2rem', margin: '4px 0 6px' }}>
+                      {isEligible ? 'You can save a life today' : 'Donation Status'}
                     </p>
-                    <p className="hero-sub">
+                    <p className="hero-sub" style={{ margin: 0, lineHeight: 1.3 }}>
                       {donor?.last_donation_date
-                        ? `Last donation: ${formatDate(donor.last_donation_date)} · ${stats?.total_donations_count ?? 0} total donations`
+                        ? `Last donation: ${formatDate(donor.last_donation_date)}`
                         : 'No donations recorded yet'}
+                    </p>
+                    <p className="hero-sub" style={{ margin: '3px 0 0', opacity: 0.95, fontSize: '0.85rem', fontWeight: 600 }}>
+                      {isEligible
+                        ? 'Eligible to donate now'
+                        : `Eligible to donate again in ${nextEligibleDays ?? 0} day(s)`}
                     </p>
                   </div>
                 </div>
@@ -378,17 +383,48 @@ const Dashboard: React.FC = () => {
                     <p className="hero-sub" style={{ color: 'var(--bd-muted)' }}>No donations recorded yet.</p>
                   )}
 
-                  {history_.slice(0, 5).map((entry) => (
-                    <div key={entry.id} className="hist-row">
-                      <div className="hist-icon">
-                        <IonIcon icon={checkmarkCircle} />
+                  {history_.slice(0, 5).map((entry) => {
+                    const isSuccessful = entry.extraction_status === 'successful';
+                    const isDrive = entry.source_type === 'donation_drive';
+                    const isEmergency = entry.source_type === 'emergency_request';
+
+                    return (
+                      <div key={entry.id} className="hist-row" style={{ alignItems: 'flex-start', marginBottom: '12px' }}>
+                        <div className="hist-icon" style={{ background: isSuccessful ? '#E8F5EE' : '#FCEEEE', color: isSuccessful ? '#1E7A4C' : '#B3122B', marginTop: '2px' }}>
+                          <IonIcon icon={isSuccessful ? checkmarkCircle : closeCircleOutline} />
+                        </div>
+                        <div className="hist-info" style={{ flexGrow: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div className="t" style={{ fontWeight: 700 }}>{entry.title}</div>
+                            <span style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: '999px',
+                              background: isDrive ? '#E5F5F8' : (isEmergency ? '#FCEEEE' : '#F5F4F1'),
+                              color: isDrive ? '#0e7490' : (isEmergency ? '#B3122B' : '#6B7280')
+                            }}>
+                              {entry.source_label}
+                            </span>
+                          </div>
+
+                          <div className="s" style={{ marginTop: '2px' }}>
+                            {formatDate(entry.donation_date)} · {entry.volume_ml} mL &nbsp;|&nbsp;
+                            <strong style={{ color: isSuccessful ? '#1E7A4C' : '#B3122B' }}>
+                              {isSuccessful ? 'Successful' : 'Unsuccessful'}
+                            </strong>
+                          </div>
+
+                          {/* Display recipient name if successful and present */}
+                          {isSuccessful && entry.recipient_name && (
+                            <div style={{ fontSize: '0.78rem', color: '#4B5563', marginTop: '3px' }}>
+                              Recipient / Patient: <strong>{entry.recipient_name}</strong>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="hist-info">
-                        <div className="t">{entry.drive_title ?? entry.facility_name}</div>
-                        <div className="s">{formatDate(entry.donation_date)} · {entry.volume_ml} mL</div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}

@@ -189,8 +189,13 @@ export interface DonationHistoryEntry {
   id: number;
   donation_date: string;
   volume_ml: number;
+  extraction_status: 'successful' | 'unsuccessful';
   facility_name: string;
   drive_title: string | null;
+  title: string;
+  source_type: 'donation_drive' | 'emergency_request' | 'direct';
+  source_label: string;
+  recipient_name: string | null;
 }
 
 export const donationHistoryApi = {
@@ -219,9 +224,11 @@ export interface MyEmergencyRequestItem {
 export interface NotifiedDonor {
   donor_id: number;
   name: string;
+  phone_number: string | null;
   blood_type: string | null;
-  notification_status: 'pending' | 'sent' | 'failed';
+  notification_status?: 'pending' | 'sent' | 'failed';
   response_status: 'accepted' | 'declined' | 'arrived' | 'not_responded';
+  outcome?: 'donated' | 'no_show' | null;
 }
 
 export interface MyEmergencyRequestDetail extends MyEmergencyRequestItem {
@@ -289,13 +296,19 @@ export interface DonorProfile {
 
 export interface ProfileStats {
   total_donations_count: number;
-  total_volume_ml: number;
+  successful_donations_count: number;
   badge_tier: string;
 }
 
 export interface ProfileResponse {
   profile: DonorProfile;
   stats: ProfileStats;
+}
+
+export interface UpdateProfilePayload {
+  name: string;
+  phone_number: string | null;
+  barangay_id?: number | null;
 }
 
 export interface UpdatePasswordPayload {
@@ -317,6 +330,13 @@ export interface LocationPayload {
 export const profileApi = {
   get: (token: string) => apiRequest<ProfileResponse>('/profile', { method: 'GET', token }),
 
+  update: (token: string, payload: UpdateProfilePayload) =>
+    apiRequest<{ message: string }>('/profile', {
+      method: 'PUT',
+      token,
+      body: JSON.stringify(payload),
+    }),
+
   updatePassword: (token: string, payload: UpdatePasswordPayload) =>
     apiRequest<{ message: string }>('/profile/password', {
       method: 'PUT',
@@ -330,8 +350,6 @@ export const profileApi = {
       token,
       body: JSON.stringify(payload),
     }),
-
-  export: (token: string) => apiRequest<Record<string, unknown>>('/profile/export', { method: 'GET', token }),
 
   deleteAccount: (token: string, payload: DeleteAccountPayload) =>
     apiRequest<{ message: string }>('/profile', {
