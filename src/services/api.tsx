@@ -1,7 +1,7 @@
 // Uses VITE_API_BASE_URL environment variable if set, falling back to local XAMPP backend API
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  'http://127.0.0.1:8000/api';
+  'https://blooddrive-cervantes.com/api';
 
 export class ApiError extends Error {
   status: number;
