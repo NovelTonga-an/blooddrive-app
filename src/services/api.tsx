@@ -106,6 +106,22 @@ export const authApi = {
     }),
 };
 
+// --- Added: Forgot Password Email OTP Flow for Donor App ---
+export const sendForgotPasswordOtp = async (data: { name: string; email: string; phone_number: string }) => {
+  return await apiRequest<{ message: string }>('/forgot-password/send-otp', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const resetPasswordWithOtp = async (data: { email: string; otp: string; password: string; password_confirmation: string }) => {
+  return await apiRequest<{ message: string }>('/forgot-password/reset', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+// -----------------------------------------------------------
+
 export const lookupApi = {
   bloodTypes: () => apiRequest<LookupOption[]>('/blood-types', { method: 'GET' }),
   barangays: () => apiRequest<LookupOption[]>('/barangays', { method: 'GET' }),

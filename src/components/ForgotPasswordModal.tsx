@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import {
-  IonModal,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
-  IonButton,
-  IonContent,
-  IonInput,
-  IonText,
-  IonSpinner
+import { 
+  IonModal, 
+  IonHeader, 
+  IonToolbar, 
+  IonTitle, 
+  IonButtons, 
+  IonButton, 
+  IonContent, 
+  IonInput, 
+  IonText, 
+  IonSpinner 
 } from '@ionic/react';
+import { sendForgotPasswordOtp, resetPasswordWithOtp, ApiError } from '../services/api';
 
 interface Props {
   isOpen: boolean;
@@ -19,6 +20,8 @@ interface Props {
 
 export const ForgotPasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [step, setStep] = useState<1 | 2>(1);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
@@ -28,8 +31,8 @@ export const ForgotPasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSendOtp = async () => {
-    if (!phone) {
-      setMessage('Please enter your registered phone number.');
+    if (!name || !email || !phone) {
+      setMessage('Please enter your name, email, and phone number to verify your account.');
       setIsError(true);
       return;
     }
@@ -38,24 +41,16 @@ export const ForgotPasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
     setMessage(null);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/forgot-password/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone_number: phone })
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setMessage(data.message);
-        setIsError(false);
-        setStep(2);
+      const res = await sendForgotPasswordOtp({ name, email, phone_number: phone });
+      setMessage(res.message);
+      setIsError(false);
+      setStep(2);
+    } catch (err: any) {
+      if (err instanceof ApiError) {
+        setMessage(err.message || 'Verification failed. Credentials do not match.');
       } else {
-        setMessage(data.message || 'No account found with this phone number.');
-        setIsError(true);
+        setMessage('Network error. Please try again.');
       }
-    } catch (err) {
-      setMessage('Network error. Please try again.');
       setIsError(true);
     } finally {
       setIsLoading(false);
@@ -79,49 +74,51 @@ export const ForgotPasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
     setMessage(null);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/forgot-password/reset', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone_number: phone,
-          otp: otp,
-          password: password,
-          password_confirmation: confirmPassword
-        })
+      const res = await resetPasswordWithOtp({
+        email: email,
+        otp: otp,
+        password: password,
+        password_confirmation: confirmPassword
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
-        setMessage(data.message);
-        setIsError(false);
-        setTimeout(() => {
-          onClose();
-          setStep(1);
-          setPhone('');
-          setOtp('');
-          setPassword('');
-          setConfirmPassword('');
-        }, 2000);
+      setMessage(res.message);
+      setIsError(false);
+      
+      setTimeout(() => {
+        handleModalClose();
+      }, 2000);
+    } catch (err: any) {
+      if (err instanceof ApiError) {
+        setMessage(err.message || 'Invalid or expired OTP.');
       } else {
-        setMessage(data.message || 'Invalid or expired OTP.');
-        setIsError(true);
+        setMessage('Network error. Please try again.');
       }
-    } catch (err) {
-      setMessage('Network error. Please try again.');
       setIsError(true);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleModalClose = () => {
+    setStep(1);
+    setName('');
+    setEmail('');
+    setPhone('');
+    setOtp('');
+    setPassword('');
+    setConfirmPassword('');
+    setMessage(null);
+    setIsError(false);
+    onClose();
+  };
+
   return (
-    <IonModal isOpen={isOpen} onDidDismiss={onClose}>
+    <IonModal isOpen={isOpen} onDidDismiss={handleModalClose} backdropDismiss={false}>
       <IonHeader>
         <IonToolbar color="danger">
           <IonTitle>Reset Password</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={onClose}>Close</IonButton>
+            <IonButton onClick={handleModalClose} disabled={isLoading}>Close</IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -135,9 +132,29 @@ export const ForgotPasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
         {step === 1 ? (
           <div>
-            <p style={{ fontSize: '0.88rem', color: '#6B7280' }}>
-              Enter your registered mobile phone number to receive a 6-digit SMS OTP code.
+            <p style={{ fontSize: '0.88rem', color: '#6B7280', marginBottom: '16px' }}>
+              Enter your exact registered name, email, and mobile number to receive a 6-digit Email OTP code.
             </p>
+            <IonInput
+              type="text"
+              fill="outline"
+              label="Full Name"
+              labelPlacement="floating"
+              placeholder="Juan Dela Cruz"
+              value={name}
+              onIonInput={(e) => setName(e.detail.value!)}
+              className="ion-margin-bottom"
+            />
+            <IonInput
+              type="email"
+              fill="outline"
+              label="Registered Email Address"
+              labelPlacement="floating"
+              placeholder="name@example.com"
+              value={email}
+              onIonInput={(e) => setEmail(e.detail.value!)}
+              className="ion-margin-bottom"
+            />
             <IonInput
               type="tel"
               fill="outline"
@@ -146,15 +163,16 @@ export const ForgotPasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
               placeholder="0917XXXXXXX"
               value={phone}
               onIonInput={(e) => setPhone(e.detail.value!)}
+              className="ion-margin-bottom"
             />
-            <IonButton expand="block" color="danger" className="ion-margin-top" onClick={handleSendOtp} disabled={isLoading}>
-              {isLoading ? <IonSpinner name="dots" /> : 'Send SMS OTP'}
+            <IonButton expand="block" color="danger" className="ion-margin-top" onClick={handleSendOtp} disabled={isLoading || !name || !email || !phone}>
+              {isLoading ? <IonSpinner name="dots" /> : 'Verify & Send Email OTP'}
             </IonButton>
           </div>
         ) : (
           <div>
-            <p style={{ fontSize: '0.88rem', color: '#6B7280' }}>
-              Enter the 6-digit OTP sent to {phone} along with your new password.
+            <p style={{ fontSize: '0.88rem', color: '#6B7280', marginBottom: '16px' }}>
+              Enter the 6-digit OTP sent to {email} along with your new password.
             </p>
             <IonInput
               type="text"
@@ -162,28 +180,32 @@ export const ForgotPasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
               label="OTP Code"
               labelPlacement="floating"
               placeholder="000000"
+              maxlength={6}
               value={otp}
               onIonInput={(e) => setOtp(e.detail.value!)}
+              className="ion-margin-bottom"
             />
             <IonInput
               type="password"
               fill="outline"
               label="New Password"
               labelPlacement="floating"
-              className="ion-margin-top"
+              placeholder="Min 8 characters"
               value={password}
               onIonInput={(e) => setPassword(e.detail.value!)}
+              className="ion-margin-bottom"
             />
             <IonInput
               type="password"
               fill="outline"
               label="Confirm New Password"
               labelPlacement="floating"
-              className="ion-margin-top"
+              placeholder="Re-enter password"
               value={confirmPassword}
               onIonInput={(e) => setConfirmPassword(e.detail.value!)}
+              className="ion-margin-bottom"
             />
-            <IonButton expand="block" color="danger" className="ion-margin-top" onClick={handleResetPassword} disabled={isLoading}>
+            <IonButton expand="block" color="danger" className="ion-margin-top" onClick={handleResetPassword} disabled={isLoading || !otp || !password || !confirmPassword}>
               {isLoading ? <IonSpinner name="dots" /> : 'Reset Password'}
             </IonButton>
           </div>
